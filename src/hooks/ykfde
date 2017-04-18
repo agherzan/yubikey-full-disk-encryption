@@ -1,4 +1,4 @@
-#!/usr/bin/ash
+#!/usr/bin/bash
 
 run_hook() {
     local _key
