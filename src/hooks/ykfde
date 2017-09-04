@@ -46,6 +46,17 @@ run_hook() {
                 break
             fi
         done
+
+        if [ -n "$_key" -a "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+          local _pw;
+          printf "YubiKay Challenge-Response AND Password needed to unlock the disk $YKFDE_DISK_UUID ($YKFDE_LUKS_NAME).\nEnter password ($_secret_enter_trials_str trials): "
+          _i=$_secret_enter_trials;
+          while [ -z "$_pw" -a $_i -ne 0 ]; do
+            read -s _pw;
+            [ $_i -gt 0 ] && _i=$(( $_i - 1 ))
+          done
+          _key="$_key$_pw"
+        fi
     fi
 
     if [ -z "$_key" ]; then
