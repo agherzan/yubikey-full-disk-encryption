@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 run_hook() {
     local _key
@@ -7,7 +7,7 @@ run_hook() {
     local _endtime
 
     . /etc/ykfde.conf
-    if [ -z "$YKFDE_DISK_UUID" ] || [ -z "$YKFDE_LUKS_NAME" ]; then
+    if [ -z "$YKFDE_DISK_UUID" -o -z "$YKFDE_LUKS_NAME" ]; then
         echo "ERROR: ykfde can't find YKFDE_DISK_UUID and/or YKFDE_LUKS_NAME."
         exit 1
     fi
@@ -26,7 +26,7 @@ run_hook() {
         echo "Waiting $_timeout seconds for you to insert the yubikey ..."
         while [ -z "$_key" ]; do
             _key="$(ykchalresp $YKFDE_CHALLENGE 2>/dev/null | tr -d '\n' || true)"
-            if [ $(expr $_endtime - $_starttime) -le $_timeout ]; then
+            if [ $(( $_endtime - $_starttime )) -le $_timeout ]; then
                 sleep 1
                 _endtime=$(date +%s)
             else
@@ -36,12 +36,12 @@ run_hook() {
     fi
 
     if [ -z "$_key" ]; then
-        echo -ne "Fallback to password to unlock the disk $YKFDE_DISK_UUID ($YKFDE_LUKS_NAME).\nEnter passphrase: "
+        printf "Fallback to password to unlock the disk $YKFDE_DISK_UUID ($YKFDE_LUKS_NAME).\nEnter passphrase: "
         read -s _key
     fi
 
     echo "Decrypting..."
 
-    echo -n "$_key" | cryptsetup luksOpen /dev/disk/by-uuid/$YKFDE_DISK_UUID $YKFDE_LUKS_NAME -
+    printf "$_key" | cryptsetup luksOpen /dev/disk/by-uuid/$YKFDE_DISK_UUID $YKFDE_LUKS_NAME -
     sleep 5
 }
