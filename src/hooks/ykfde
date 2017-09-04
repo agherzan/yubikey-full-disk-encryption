@@ -7,11 +7,18 @@ run_hook() {
     local _timeout=10
     local _starttime
     local _endtime
+    local _luksdev
 
     . "$CONFFILE"
     if [ -z "$YKFDE_DISK_UUID" -o -z "$YKFDE_LUKS_NAME" ]; then
         echo "ERROR: $CONFFILE must provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME."
         exit 1
+    fi
+    _luksdev="/dev/disk/by-uuid/$YKFDE_DISK_UUID"
+
+    if [ -e "$_luksdev" ]; then
+      echo "ERROR: ykfde can't find luks device '$_luksdev'. Please check YKFDE_DISK_UUID variable in '$CONFFILE'."
+      exit 1;
     fi
 
     if [ -n "$YKFDE_TIMEOUT" ]; then
@@ -44,6 +51,6 @@ run_hook() {
 
     echo "Decrypting..."
 
-    printf "$_key" | cryptsetup luksOpen /dev/disk/by-uuid/$YKFDE_DISK_UUID $YKFDE_LUKS_NAME -
+    printf "$_key" | cryptsetup luksOpen "$_luksdev" $YKFDE_LUKS_NAME -
     sleep 5
 }
