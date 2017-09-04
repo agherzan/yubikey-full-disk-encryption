@@ -32,7 +32,7 @@ run_hook() {
         # Challenge is provided so let's try yubikey
         _starttime=$(date +%s)
         _endtime=$(date +%s)
-        echo "Waiting $_timeout seconds for you to insert the yubikey ..."
+        echo "Waiting $_timeout seconds for YubiKey (don't forget to press its button if necessary)..."
         while [ -z "$_key" ]; do
             _key="$(ykchalresp $YKFDE_CHALLENGE 2>/dev/null | tr -d '\n' || true)"
             if [ $(( $_endtime - $_starttime )) -le $_timeout ]; then
@@ -51,6 +51,6 @@ run_hook() {
 
     echo "Decrypting..."
 
-    printf "$_key" | cryptsetup luksOpen "$_luksdev" $YKFDE_LUKS_NAME -
+    printf "$_key"| cryptsetup luksOpen "$_luksdev" $YKFDE_LUKS_NAME -
     sleep 5
 }
