@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/usr/bin/bash
+
+CONFFILE="/etc/ykfde.conf"
 
 run_hook() {
     local _key
@@ -6,9 +8,9 @@ run_hook() {
     local _starttime
     local _endtime
 
-    . /etc/ykfde.conf
+    . "$CONFFILE"
     if [ -z "$YKFDE_DISK_UUID" -o -z "$YKFDE_LUKS_NAME" ]; then
-        echo "ERROR: ykfde can't find YKFDE_DISK_UUID and/or YKFDE_LUKS_NAME."
+        echo "ERROR: $CONFFILE must provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME."
         exit 1
     fi
 
