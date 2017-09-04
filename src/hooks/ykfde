@@ -3,11 +3,16 @@
 CONFFILE="/etc/ykfde.conf"
 
 run_hook() {
-    local _key
-    local _timeout=10
-    local _starttime
+    local _timeout=10              # default value for YKFDE_YUBIKEY_INSERT_TIMEOUT. -1 = unlimited
+    local _secret_enter_trials=5 # default value for YKFDE_SECRET_ENTER_TRIALS.  -1 = unlimited
+    local _secret_enter_trials_str;
+
+    local _key                     # key used to 'cryptsetup luksOpen'
+    local _luksdev                 # device to unlock with 'cryptsetup luksOpen'
+
+    local _starttime               # to determine if a timeout occured
     local _endtime
-    local _luksdev
+
 
     . "$CONFFILE"
     if [ -z "$YKFDE_DISK_UUID" -o -z "$YKFDE_LUKS_NAME" ]; then
@@ -21,9 +26,9 @@ run_hook() {
       exit 1;
     fi
 
-    if [ -n "$YKFDE_TIMEOUT" ]; then
-        _timeout=$YKFDE_TIMEOUT
-    fi
+    [ -n "$YKFDE_YUBIKEY_INSERT_TIMEOUT" ] && _timeout=$YKFDE_YUBIKEY_INSERT_TIMEOUT
+    [ -n "$YKFDE_SECRET_ENTER_TRIALS" ] && _secret_enter_trials=$YKFDE_SECRET_ENTER_TRIALS
+    [ $_secret_enter_trials -lt 0 ] && _secret_enter_trials_str="unlimited" || _secret_enter_trials_str="$_secret_enter_trials"
 
     udevadm settle
     modprobe -a -q dm-crypt >/dev/null 2>&1
@@ -31,13 +36,12 @@ run_hook() {
     if [ -n "$YKFDE_CHALLENGE" ]; then
         # Challenge is provided so let's try yubikey
         _starttime=$(date +%s)
-        _endtime=$(date +%s)
         echo "Waiting $_timeout seconds for YubiKey (don't forget to press its button if necessary)..."
         while [ -z "$_key" ]; do
+            _endtime=$(date +%s)
             _key="$(ykchalresp $YKFDE_CHALLENGE 2>/dev/null | tr -d '\n' || true)"
-            if [ $(( $_endtime - $_starttime )) -le $_timeout ]; then
+            if [ $_timeout -eq -1 -o $(( $_endtime - $_starttime )) -le $_timeout ]; then
                 sleep 1
-                _endtime=$(date +%s)
             else
                 break
             fi
@@ -45,8 +49,13 @@ run_hook() {
     fi
 
     if [ -z "$_key" ]; then
-        printf "Fallback to password to unlock the disk $YKFDE_DISK_UUID ($YKFDE_LUKS_NAME).\nEnter passphrase: "
-        read -s _key
+        printf "Fallback to password to unlock the disk $YKFDE_DISK_UUID ($YKFDE_LUKS_NAME).\nEnter passphrase ($_secret_enter_trials_str trials): "
+
+        _i=$_secret_enter_trials;
+        while [ -z "$_pw" -a $_i -ne 0 ]; do
+          read -s _key
+            [ $_i -gt 0 ] && _i=$(( $_i - 1 ))
+        done
     fi
 
     echo "Decrypting..."
