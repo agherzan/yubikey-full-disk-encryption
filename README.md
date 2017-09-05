@@ -60,14 +60,14 @@ Reboot and test you configuration.
 
 ## Improvements
 
-* Added DBG mode
-* Added error codes + messages and added few more sanity checks
-* Added Documentation
-* Added Parameters (e.g. slot)
+* Added DBG mode (turned on via etc/ykfde.conf if things don't work like they should and you would like to *exactly* understand what is going on ;))
+* Added error codes + messages and added few more sanity checks (hook/ykfde)
+* Added Documentation (to ykfde.conf and to hook/ykfde)
+* Added Parameters (see ykfde.conf - e.g. slot, parameterized the sleep 5, because I don't need it ... ;) 
 * Added Possibility to combine Password with Challenge-Response
-* Made the script more robust against typos, less error prone
-* Added YubiKey detection (to complete the wait for yubiKey functionality)
-* Added a testrun.sh Test script ;)
+* Made the hook/ykfde script overall more robust against typos, less error prone
+* Added YubiKey detection (to complete the wait for yubiKey functionality of hook/ykfde script)
+* Added a testrun.sh Test script to test the hook not first during boot-up ;)
 
 ## License
 
