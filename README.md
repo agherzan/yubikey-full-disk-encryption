@@ -58,6 +58,17 @@ sudo mkinitcpio -p linux
 
 Reboot and test you configuration.
 
+## Improvements
+
+* Added DBG mode
+* Added error codes + messages and added few more sanity checks
+* Added Documentation
+* Added Parameters (e.g. slot)
+* Added Possibility to combine Password with Challenge-Response
+* Made the script more robust against typos, less error prone
+* Added YubiKey detection (to complete the wait for yubiKey functionality)
+* Added a testrun.sh Test script ;)
+
 ## License
 
 Copyright 2017 Andrei Gherzan
