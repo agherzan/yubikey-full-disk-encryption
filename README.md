@@ -69,6 +69,11 @@ Reboot and test you configuration.
 * Added YubiKey detection (to complete the wait for yubiKey functionality of hook/ykfde script)
 * Added a testrun.sh Test script to test the hook not first during boot-up ;)
 
+## Security
+
+For a security analysis of this improvement (and the idea to combine password (knowledge) with YubiKey (possession) security please see
+[this very acurate analisis from Cornelinux](https://github.com/cornelinux/yubikey-luks/issues/1#issuecomment-326504799).
+
 ## License
 
 Copyright 2017 Andrei Gherzan
