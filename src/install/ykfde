@@ -21,9 +21,10 @@ build() {
 
     add_binary "tr"
     add_binary "ykchalresp"
+    add_binary "ykinfo"
     add_binary "date"
-    add_binary "expr"
     add_binary "sleep"
+    add_binary "printf"
     add_file "/etc/ykfde.conf" "/etc/ykfde.conf"
 
     add_runscript
