@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 CONFFILE="/etc/ykfde.conf"
 [ -e "src/hooks/ykfde" ] || { echo "ERROR: src/hooks/ykfde not found."; exit 1; }
 . "$CONFFILE"
