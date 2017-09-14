@@ -58,6 +58,22 @@ sudo mkinitcpio -p linux
 
 Reboot and test you configuration.
 
+## Improvements
+
+* Added DBG mode (turned on via etc/ykfde.conf if things don't work like they should and you would like to *exactly* understand what is going on ;))
+* Added error codes + messages and added few more sanity checks (hook/ykfde)
+* Added Documentation (to ykfde.conf and to hook/ykfde)
+* Added Parameters (see ykfde.conf - e.g. slot, parameterized the sleep 5, because I don't need it ... ;) 
+* Added Possibility to combine Password with Challenge-Response
+* Made the hook/ykfde script overall more robust against typos, less error prone
+* Added YubiKey detection (to complete the wait for yubiKey functionality of hook/ykfde script)
+* Added a testrun.sh Test script to test the hook not first during boot-up ;)
+
+## Security
+
+For a security analysis of this improvement (and the idea to combine password (knowledge) with YubiKey (possession) security please see
+[this very acurate analisis from Cornelinux](https://github.com/cornelinux/yubikey-luks/issues/1#issuecomment-326504799).
+
 ## License
 
 Copyright 2017 Andrei Gherzan
