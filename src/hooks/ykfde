@@ -29,6 +29,15 @@ ykfde_challenge_response() {
 
     while [ -z "$_yubikey_detected" ]; do
       _endtime=$(date +%s); _usedtime=$(( $_endtime - $_starttime ));
+    if [ -a "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+      local _pw="";
+      echo " > Please provide password which will be used as challenge."
+      while [ -z "$_pw" ]; do
+      printf "   Enter password: "; if [ $DBG ]; then read _pw; else read -s _pw; fi
+      done
+      [ $DBG ] || echo # if /NOT/ DBG, we need to output \n here.
+      YKFDE_CHALLENGE="$_pw"
+    fi
       [ $DBG ] && printf "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
       _tmp="$(ykinfo -$YKFDE_CHALLENGE_SLOT 2>&1)"; _rc=$?;
       [ $DBG ] && echo "[$_rc] '$_tmp'"
@@ -54,13 +63,6 @@ ykfde_challenge_response() {
     [ $DBG ] && printf "\n   Got as response: '$_passphrase'\n"
 
     if [ -n "$_passphrase" -a "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
-      local _pw="";
-      #sleep 2; # hot fix to IGNORE input sent from YubiKey if the button was pressed too LATE
-      echo " > On top of the ykchalresp we got, we also need a password."
-      while [ -z "$_pw" ]; do
-        printf "   Enter password: "; if [ $DBG ]; then read _pw; else read -s _pw; fi
-      done
-      [ $DBG ] || echo # if /NOT/ DBG, we need to output \n here.
       _passphrase="$_passphrase$_pw"
     fi
 }
