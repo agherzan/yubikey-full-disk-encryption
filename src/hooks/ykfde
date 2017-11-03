@@ -29,7 +29,7 @@ ykfde_challenge_response() {
 
     while [ -z "$_yubikey_detected" ]; do
       _endtime=$(date +%s); _usedtime=$(( $_endtime - $_starttime ));
-    if [ -a "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+    if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
       local _pw="";
       echo " > Please provide password which will be used as challenge."
       while [ -z "$_pw" ]; do
