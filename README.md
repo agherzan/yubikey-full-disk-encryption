@@ -2,7 +2,7 @@
 
 ## Description
 
-This project enables unlocking of LUKS partitions using an [ubikey](https://www.yubico.com). It uses initramfs to do this and mkinitcpio to generate it (the initramfs).
+This project enables unlocking of LUKS partitions using an [Yubikey](https://www.yubico.com). It uses initramfs to do this and mkinitcpio to generate it (the initramfs).
 
 Be aware that this was only tested and intended for:
 * Archlinux
