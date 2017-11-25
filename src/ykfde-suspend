@@ -1,0 +1,145 @@
+#!/bin/bash
+# Copyright 2013 Vianney le Clément de Saint-Marcq <vleclement@gmail.com>  
+# Copyright 2017 Zhongfu Li <me@zhongfu.li>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with This program.  If not, see http://www.gnu.org/licenses/.
+
+set -e -u
+trap 'echo "Press ENTER to continue."; read dummy' ERR
+trap cleanup EXIT
+
+################################################################################
+## Parameters and helper functions
+
+INITRAMFS_DIR=/run/initramfs
+SYSTEM_SLEEP_PATH=/usr/lib/systemd/system-sleep
+SYSTEM_SLEEP_BINARY=/lib/systemd/systemd-sleep
+SUSPEND_SCRIPT=bin/encrypt-on-suspend
+BIND_PATHS="/sys /proc /dev /run"
+REMOUNT=0
+# Retrieve cryptdevice name from /proc/mounts -- kinda hacky
+CRYPTNAME="$(grep -E "^/dev/mapper/[a-zA-Z0-9_\-]+ / " /proc/mounts | sed -r "s|^/dev/mapper/([a-zA-Z0-9_\-]+).*|\1|")"
+
+# run_dir DIR ARGS...
+# Run all executable scripts in directory DIR with arguments ARGS
+run_dir() {
+    local dir=$1
+    shift
+    find "${dir}" -type f -executable -exec "{}" "$@" ";"
+}
+
+# Remount root fs with barrier
+mount_barrier() {
+    if ((REMOUNT)); then
+        mount -o remount,barrier "/dev/mapper/$CRYPTNAME"
+        REMOUNT=0
+    fi
+}
+
+# Unmount bind mounts
+umount_bind() {
+    local p
+    for p in ${BIND_PATHS}; do
+        mountpoint -q "${INITRAMFS_DIR}${p}" && umount "${INITRAMFS_DIR}${p}"
+    done
+}
+
+# Unmount (and remove) extracted initramfs
+# umount -l (lazy) because sometimes, it takes a while before everything stops
+# using the ramdisk.
+umount_initramfs() {
+    mountpoint -q "${INITRAMFS_DIR}" && umount -l "${INITRAMFS_DIR}"
+}
+
+cleanup() {
+    mount_barrier
+    ((BIND_MOUNTED)) && umount_bind
+    umount_initramfs
+}
+
+cryptdevice_mount_options() {
+    local mt
+    mt="$(grep "^/dev/mapper/${1} " /proc/mounts | cut -d ' ' -f 3,4 | head -n 1)"
+    local fs
+    fs="$(cut -d ' ' -f 1 <<< "${mt}")"
+    local opt
+    opt="$(cut -d ' ' -f 2 <<< "${mt}")"
+    if [[ "${fs}" == "ext4" || "${fs}" == "btrfs" ]]; then
+        echo "${opt}"
+    fi
+}
+
+################################################################################
+## Main script
+
+[ -e "${INITRAMFS_DIR}/$SUSPEND_SCRIPT" ] || exec $SYSTEM_SLEEP_BINARY suspend
+
+# Prepare chroot
+trap umount_initramfs EXIT
+for p in ${BIND_PATHS}; do
+    mkdir -p "${INITRAMFS_DIR}${p}"
+    mount -o bind "${p}" "${INITRAMFS_DIR}${p}"
+done
+
+# Run pre-suspend scripts
+run_dir "${SYSTEM_SLEEP_PATH}" pre suspend
+
+# Stop udev service and prevent it from being autostarted.
+# Otherwise, luksResume will hang waiting for udev, which is itself waiting
+# for I/O on the root device.
+systemctl stop systemd-udevd-control.socket
+systemctl stop systemd-udevd-kernel.socket
+systemctl stop systemd-udevd.service
+
+# Stop systemd-journald and prevent it from being autostarted.
+# It seems to block suspend with file I/O
+systemctl stop systemd-journald-dev-log.socket
+systemctl stop systemd-journald.socket
+systemctl stop systemd-journald-audit.socket
+systemctl stop systemd-journald.service
+
+# Journalled ext4 filesystems in kernel versions 3.11+ will block suspend
+# if mounted with `barrier=1`, which is the default. Temporarily remount with
+# `barrier=0` if this is true of the crypt fs.
+MOUNT_OPTS="$(cryptdevice_mount_options "$CRYPTNAME")"
+if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == *barrier=0* ]]; then
+    REMOUNT=1
+    mount -o remount,nobarrier "/dev/mapper/$CRYPTNAME"
+fi
+
+# Synchronize filesystems before luksSuspend
+sync
+
+# Hand over execution to script inside initramfs
+cd "${INITRAMFS_DIR}"
+chroot . /suspend "$CRYPTNAME"
+
+# Restore original mount options if necessary
+mount_barrier
+
+# Restart systemd-journald
+systemctl start systemd-journald-dev-log.socket
+systemctl start systemd-journald.socket
+systemctl start systemd-journald-audit.socket
+systemctl start systemd-journald.service
+
+# Restart udev
+systemctl start systemd-udevd-control.socket
+systemctl start systemd-udevd-kernel.socket
+systemctl start systemd-udevd.service
+
+# Run post-suspend scripts
+run_dir "${SYSTEM_SLEEP_PATH}" post suspend
+
+# Unlock user sessions
+loginctl unlock-sessions
