@@ -37,10 +37,9 @@ ykfde_challenge_response() {
       done
       [ $DBG ] || echo # if /NOT/ DBG, we need to output \n here.
       # Hash provided password with sha256
-      while [ -n "$_pw" ]; do
       _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
-      done
       YKFDE_CHALLENGE="$_pw"
+      [ $DBG ] && echo "     Yubikey challenge: \"$YKFDE_CHALLENGE\""
     fi
       [ $DBG ] && printf "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
       _tmp="$(ykinfo -$YKFDE_CHALLENGE_SLOT 2>&1)"; _rc=$?;
