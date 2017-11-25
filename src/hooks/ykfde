@@ -36,6 +36,12 @@ ykfde_challenge_response() {
       printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
       done
       [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
+      
+      # Hash provided password with sha256
+      while [ -n "$_pw" ]; do
+      _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+      done
+      
       YKFDE_CHALLENGE="$_pw"
     fi
       [ "$DBG" ] && printf "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
