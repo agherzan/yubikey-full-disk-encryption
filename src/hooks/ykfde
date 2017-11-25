@@ -100,7 +100,7 @@ ykfde_do_it() {
     [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
     [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
 
-    _tmp="$(printf "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1)";
+    _tmp="$(printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1)";
     _rc=$?;
 
     if [ $_rc -eq 0 ]; then
