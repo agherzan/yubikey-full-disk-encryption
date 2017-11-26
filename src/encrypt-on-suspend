@@ -1,8 +1,42 @@
 #!/usr/bin/env bash
+# Copyright 2013 Vianney le Clément de Saint-Marcq <vleclement@gmail.com>  
+# Copyright 2017 Zhongfu Li <me@zhongfu.li>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with This program.  If not, see http://www.gnu.org/licenses/.
+
+cryptname="${1}"
+trap stop_udev EXIT
+
+stop_udev() {
+  # Stop udev from initramfs, as the real daemon from rootfs will be restarted
+  udevadm control --exit
+}
+
+# Start udev from initramfs
+/usr/lib/systemd/systemd-udevd --daemon --resolve-names=never
+
+# Synchronize filesystems before luksSuspend 
+sync
+
+# Suspend root device
+[ -z "${cryptname}" ] || cryptsetup luksSuspend "${cryptname}"
+
+# Suspend the system
+echo mem > /sys/power/state
 
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
 
-DEFAULT_CRYPTSETUP_TRIALS=5;                   # defaults number of times to try 'do_it()' -- so: assemble passphrase and run 'cryptsetup luksOpen'
+DEFAULT_CRYPTSETUP_TRIALS=5;                   # defaults number of times to try 'do_it()' -- so: assemble passphrase and run 'cryptsetup luksResume'
 DEFAULT_CHALLENGE_YUBIKEY_INSERT_TIMEOUT=30;   # default value for YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT. -1 = unlimited
 
 
@@ -36,11 +70,13 @@ ykfde_challenge_response() {
       printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
       done
       [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
-      
+
       # Hash provided password with sha256
-      _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+      #while [ -n "$_pw" ]; do
+      #_pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+      #done
+
       YKFDE_CHALLENGE="$_pw"
-      [ $DBG ] && echo "     Yubikey challenge: \"$YKFDE_CHALLENGE\""
     fi
       [ "$DBG" ] && printf "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
       _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"; _rc=$?;
@@ -72,9 +108,9 @@ ykfde_challenge_response() {
 }
 
 
-# assemble passphrase and run 'cryptsetup luksOpen'
+# assemble passphrase and run 'cryptsetup luksResume'
 ykfde_do_it() {
-    local _passphrase=""                     # key used to 'cryptsetup luksOpen'
+    local _passphrase=""                     # key used to 'cryptsetup luksResume'
     local _tmp="";
     local _rc="";
 
@@ -93,12 +129,10 @@ ykfde_do_it() {
         [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
     fi
 
-    [ -e "$YKFDE_LUKS_DEV" ] || { ykfde_err 003 "ykfde can't find LUKS device '$YKFDE_LUKS_DEV'.\nPlease check YKFDE_DISK_UUID ($YKFDE_DISK_UUID) and/or YKFDE_LUKS_DEV variable(s) in '$YKFDE_CONFIG_FILE'."; return 1; }
-
     [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
-    [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
+    [ "$DBG" ] && echo " > Decrypting (cryptsetup luksResume \"${cryptname}\")..." || echo " > Decrypting (cryptsetup luksResume)..."
 
-    _tmp="$(printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1)";
+    _tmp="$(printf %s "$_passphrase"| cryptsetup luksResume "${cryptname}" 2>&1)";
     _rc=$?;
 
     if [ $_rc -eq 0 ]; then
@@ -123,10 +157,7 @@ run_hook() {
     [ "$DBG" ] && echo " > Reading YKFDE_CONFIG_FILE..."
     . "$YKFDE_CONFIG_FILE" || { ykfde_err 001 "Failed reading YKFDE_CONFIG_FILE '$YKFDE_CONFIG_FILE'"; return 1; }
 
-    [ -z "$YKFDE_DISK_UUID" ] || [ -z "$YKFDE_LUKS_NAME" ] && { ykfde_err 002 "'$YKFDE_CONFIG_FILE' must provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME."; return 1; }
-
     # set default values:
-    [ -z "$YKFDE_LUKS_DEV" ] && YKFDE_LUKS_DEV="/dev/disk/by-uuid/$YKFDE_DISK_UUID"
     [ -z "$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT" ] && YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT="$DEFAULT_CHALLENGE_YUBIKEY_INSERT_TIMEOUT"
     [ -z "$YKFDE_CRYPTSETUP_TRIALS" ] && YKFDE_CRYPTSETUP_TRIALS="$DEFAULT_CRYPTSETUP_TRIALS"
 
@@ -140,7 +171,7 @@ run_hook() {
     tmp="$(modprobe -a dm-crypt 2>&1)" || { ykfde_err 005 "FAILED to 'modprobe -a -q dm-crypt':\n$tmp"; return 1; }
 
     local trial_nr=1;
-    local what="$YKFDE_DISK_UUID"; [ -n "$YKFDE_LUKS_NAME" ] && s=" $YKFDE_LUKS_NAME";
+    local what="${cryptname}";
     while [ $trial_nr -le $YKFDE_CRYPTSETUP_TRIALS ]; do
       printf "\nTRIAL #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $what\n"
       ykfde_do_it && return 0;
@@ -151,4 +182,3 @@ run_hook() {
     ykfde_err 000 "$0 FAILED !"
     return 1;
 }
-

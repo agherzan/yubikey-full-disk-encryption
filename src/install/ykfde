@@ -26,7 +26,8 @@ build() {
     add_binary "sleep"
     add_binary "printf"
     add_file "/etc/ykfde.conf" "/etc/ykfde.conf"
-
+    add_file "/usr/lib/ykfde-suspend/encrypt-on-suspend" "/bin" 755
+    
     add_runscript
 }
 
