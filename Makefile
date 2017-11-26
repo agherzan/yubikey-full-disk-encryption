@@ -10,6 +10,6 @@ reinstall:
 	cp src/install/ykfde /usr/lib/initcpio/install
         install -Dm755 arch-luks-suspend "$(DESTDIR)/usr/lib/ykfde-suspend/ykfde-luks-suspend"
         install -Dm755 initramfs-suspend "$(DESTDIR)/usr/lib/ykfde-suspend/initramfs-suspend"
-        install -Dm644 systemd-suspend.service "$(DESTDIR)/etc/systemd/system/ykfde-suspend.service"
+        install -Dm644 systemd-suspend.service "$(DESTDIR)/usr/lib/systemd/system/ykfde-suspend.service"
 test:
 	./testrun.sh
