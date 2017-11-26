@@ -1,0 +1,59 @@
+#!/usr/bin/ash
+
+cryptname="${1}"
+
+# Start udev from initramfs
+/usr/lib/systemd/systemd-udevd --daemon --resolve-names=never
+
+# Synchronize filesystems before luksSuspend
+sync
+
+# Suspend root device
+[ -z "${cryptname}" ] || cryptsetup luksSuspend "${cryptname}"
+
+# Suspend the system
+echo mem > /sys/power/state
+
+# Resume root device
+. /etc/ykfde.conf
+
+
+[ -z "${cryptname}" ] ||
+    while true; do
+        if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+            echo " > Please provide password which will be used as challenge."
+            while [ -z "$_pw" ]; do
+            printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
+            done
+            [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
+            YKFDE_CHALLENGE="$_pw"
+        fi
+
+        [ "$DBG" ] && printf "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
+        _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
+        [ "$DBG" ] && echo "$_tmp"
+        [ "$DBG" ] && echo "   Running NOW: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
+        _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+        if [ -z "$_passphrase" ]; then
+            printf "\n   NO response from YubiKey!? - We try again! (so press the button now?!)...\n"
+            _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+        fi
+
+        if [ -z "$_passphrase" ]; then
+            printf "\n   NO response from YubiKey!? - Last trial of ykchalresp...\n"
+            _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+        fi
+        [ "$DBG" ] && printf "\n   Got as response: '$_passphrase'\n"
+
+        if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+            _passphrase="$_passphrase$_pw"
+        fi
+        [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
+        [ "$DBG" ] && echo " > Decrypting (cryptsetup luksResume \"${cryptname}\")..." || echo " > Decrypting (cryptsetup luksResume)..."
+        printf %s "$_passphrase"| cryptsetup luksResume "${cryptname}" 2>&1;
+        [ $? -le 1 ] && break
+        sleep 2
+    done
+
+# Stop udev from initramfs, as the real daemon from rootfs will be restarted
+udevadm control --exit
