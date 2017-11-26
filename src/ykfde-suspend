@@ -44,7 +44,7 @@ cryptdevice_mount_options() {
 ################################################################################
 ## Main script
 
-[ -e "${INITRAMFS_DIR}/suspend" ] || exec /usr/lib/systemd/systemd-sleep suspend
+[ -e "${INITRAMFS_DIR}/bin/suspend" ] || exec /usr/lib/systemd/systemd-sleep suspend
 
 # Prepare chroot
 trap umount_initramfs EXIT
@@ -77,7 +77,7 @@ fi
 
 # Hand over execution to script inside initramfs
 cd "${INITRAMFS_DIR}"
-chroot . /suspend "$CRYPTNAME"
+chroot . /bin/suspend "$CRYPTNAME"
 
 # Restore original mount options if necessary
 if ((REMOUNT)); then
