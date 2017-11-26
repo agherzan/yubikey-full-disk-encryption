@@ -1,0 +1,100 @@
+#!/bin/bash
+
+set -e -u
+trap 'echo "Press ENTER to continue."; read dummy' ERR
+
+################################################################################
+## Parameters and helper functions
+
+INITRAMFS_DIR=/run/initramfs
+SYSTEM_SLEEP_PATH=/usr/lib/systemd/system-sleep
+BIND_PATHS="/sys /proc /dev /run"
+REMOUNT=0
+# Retrieve cryptdevice name from boot cmdline
+CRYPTNAME="$(sed -n 's/.*cryptdevice=[^: ]*:\([^: ]*\).*$/\1/p' /proc/cmdline)"
+
+# run_dir DIR ARGS...
+# Run all executable scripts in directory DIR with arguments ARGS
+run_dir() {
+    local dir=$1
+    shift
+    find "${dir}" -type f -executable -exec "{}" "$@" ";"
+}
+
+# Restore chroot
+umount_initramfs() {
+    local p
+    for p in ${BIND_PATHS}; do
+        ! mountpoint -q "${INITRAMFS_DIR}${p}" || umount "${INITRAMFS_DIR}${p}"
+    done
+}
+
+cryptdevice_mount_options() {
+    local mt
+    mt="$(grep "^/dev/mapper/${1} " /proc/mounts | cut -d ' ' -f 3,4 | head -n 1)"
+    local fs
+    fs="$(cut -d ' ' -f 1 <<< "${mt}")"
+    local opt
+    opt="$(cut -d ' ' -f 2 <<< "${mt}")"
+    if [[ "${fs}" == "ext4" || "${fs}" == "btrfs" ]]; then
+        echo "${opt}"
+    fi
+}
+
+################################################################################
+## Main script
+
+[ -e "${INITRAMFS_DIR}/suspend" ] || exec /usr/lib/systemd/systemd-sleep suspend
+
+# Prepare chroot
+trap umount_initramfs EXIT
+for p in ${BIND_PATHS}; do
+    mount -o bind "${p}" "${INITRAMFS_DIR}${p}"
+done
+
+# Run pre-suspend scripts
+run_dir "${SYSTEM_SLEEP_PATH}" pre suspend
+
+# Stop udev service and prevent it to be autostarted.
+# Otherwise, luksResume will hang waiting for udev, which is itself waiting
+# for I/O on the root device.
+systemctl stop systemd-udevd-control.socket
+systemctl stop systemd-udevd-kernel.socket
+systemctl stop systemd-udevd.service
+
+systemctl stop systemd-journald.socket
+systemctl stop systemd-journald-dev-log.socket
+systemctl stop systemd-journald.service
+
+# Journalled ext4 filesystems in kernel versions 3.11+ will block suspend
+# if mounted with `barrier=1`, which is the default. Temporarily remount with
+# `barrier=0` if this is true of the crypt fs.
+MOUNT_OPTS="$(cryptdevice_mount_options "$CRYPTNAME")"
+if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == *barrier=0* ]]; then
+    REMOUNT=1
+    mount -o remount,"$MOUNT_OPTS",barrier=0 /
+fi
+
+# Hand over execution to script inside initramfs
+cd "${INITRAMFS_DIR}"
+chroot . /suspend "$CRYPTNAME"
+
+# Restore original mount options if necessary
+if ((REMOUNT)); then
+    mount -o remount,"$MOUNT_OPTS",barrier=1 /
+fi
+
+systemctl start systemd-journald.service
+systemctl start systemd-journald-dev-log.socket
+systemctl start systemd-journald.socket
+
+# Restart udev
+systemctl start systemd-udevd-control.socket
+systemctl start systemd-udevd-kernel.socket
+systemctl start systemd-udevd.service
+
+# Run post-suspend scripts
+run_dir "${SYSTEM_SLEEP_PATH}" post suspend
+
+# Unlock user sessions
+loginctl unlock-sessions
