@@ -34,6 +34,7 @@ ykfde_challenge_response() {
       echo " > Please provide password which will be used as challenge."
       while [ -z "$_pw" ]; do
       printf "   Enter password: "; if [ $DBG ]; then read _pw; else read -s _pw; fi
+      _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
       done
       [ $DBG ] || echo # if /NOT/ DBG, we need to output \n here.
       YKFDE_CHALLENGE="$_pw"
