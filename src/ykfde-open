@@ -18,7 +18,7 @@ while getopts ":d:n:hv" opt; do
 		YKFDE_LUKS_NAME=$OPTARG
 		echo "setting name to $OPTARG."
 		;;
-	v)      DBG=1
+	v)	DBG=1
 		echo "debugging enabled"
 		;;
 	h)
