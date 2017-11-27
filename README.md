@@ -67,6 +67,14 @@ sudo mkinitcpio -p linux
 
 Reboot and test you configuration.
 
+## Enable ykfde-suspend module
+
+You can enable ykfde-suspend module which allows for automatically locking encrypted LUKS containers and wiping keys from memory on suspend and unlocking them on resume by using luksSuspend, luksResume commands.)
+
+```
+systemctl enable ykfde-suspend.service
+```
+
 ## Improvements
 
 * Added DBG mode (turned on via etc/ykfde.conf if things don't work like they should and you would like to *exactly* understand what is going on ;))
@@ -77,6 +85,11 @@ Reboot and test you configuration.
 * Made the hook/ykfde script overall more robust against typos, less error prone
 * Added YubiKey detection (to complete the wait for yubiKey functionality of hook/ykfde script)
 * Added a testrun.sh Test script to test the hook not first during boot-up ;)
+* Added ykfde-suspend module
+* Fixes most issues detected by shellcheck static analysis tool
+* Adds makepkg integration and PKGBUILD
+* Hash password with sha256.
+* Adds ykfde-open and ykfde-enroll scripts
 
 ## Security
 
