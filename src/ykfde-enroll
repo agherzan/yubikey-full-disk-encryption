@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+CLEAR_KEY_SLOT=0
+
+set -e
+. /etc/ykfde.conf
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "You must be root." 1>&2
+  exit 1
+fi
+
+while getopts ":s:d:hcv" opt; do
+  case $opt in
+	s)
+		KEY_SLOT=$OPTARG
+		echo "setting LUKS key slot to $OPTARG."
+		;;
+	d)
+		YKFDE_LUKS_DEV=$OPTARG
+		echo "setting disk to $OPTARG."
+		;;
+	c)      CLEAR_KEY_SLOT=1
+		echo "clearing LUKS key slot"
+		;;
+	v)      DBG=1
+		echo "debugging enabled"
+		;;
+	h)
+		echo 
+		echo " -d <partition>: set the partition"
+		echo " -s <slot>     : set the slot"
+		echo " -c            : clear the slot prior to writing"
+		echo " -v            : show input/output in cleartext"
+		echo
+		exit 1
+		;;
+	\?)
+		echo "Invalid option: -$OPTARG" >&2
+		;;
+  esac
+done
+
+if [ -z "$YKFDE_LUKS_DEV" ]; then
+    echo "Please select existing partition using -d option, see ykfde-enroll -h for help."
+    exit 1
+fi
+
+if [ -z "$KEY_SLOT" ]; then
+    echo "Please select LUKS key slot using -s option, see ykfde-enroll -h for help."
+    exit 1
+fi
+
+if [ $CLEAR_KEY_SLOT -eq 1 ]; then
+	echo "Killing LUKS slot $KEY_SLOT"
+	cryptsetup luksKillSlot "$YKFDE_LUKS_DEV" "$KEY_SLOT"
+fi
+
+echo "This script will utilize slot $KEY_SLOT on drive $YKFDE_LUKS_DEV.  If this is not what you intended, exit now!"
+
+if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+    echo " > Please provide password which will be used as challenge."
+    while [ -z "$_pw" ]; do
+    printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
+    echo " > Please provide the same password again."
+    printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw2; else read -r -s _pw2; fi
+    if [ "$_pw" != "$_pw2" ]; then
+	echo "Passwords do not match"
+	exit 1
+    fi
+    _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+    done
+    [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
+    YKFDE_CHALLENGE="$_pw"
+fi
+
+[ "$DBG" ] && printf "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
+_tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
+[ "$DBG" ] && echo "$_tmp"
+
+echo "   Don't forget to press its button if necessary..."
+[ "$DBG" ] && echo "   Running NOW: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
+_passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+
+if [ -z "$_passphrase" ]; then
+    printf "\n   NO response from YubiKey!? - We try again! (so press the button now?!)...\n"
+    _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+fi
+
+[ "$DBG" ] && printf "\n   Got as response: '$_passphrase'\n"
+
+if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+    _passphrase="$_passphrase$_pw"
+fi
+
+[ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
+echo "You may now be prompted for an existing passphrase. This is NOT the passphrase you just entered, this is the passphrase that you currently use to unlock your LUKS encrypted drive."
+printf "   Enter password: "; if [ "$DBG" ]; then read -r OLD; else read -r -s OLD; fi
+[ "$DBG" ] && echo " > Adding new LUKS key (cryptsetup --key-slot=\"$KEY_SLOT\" luksAddKey \"$YKFDE_LUKS_DEV\")..." || echo " > Decrypting (cryptsetup luksAddKey)..."
+printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="$KEY_SLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1;
+
+exit 0

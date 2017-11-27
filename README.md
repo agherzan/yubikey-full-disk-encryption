@@ -38,6 +38,15 @@ Use the response as a new key for your LUKS partition:
 cryptsetup luksAddKey /dev/<device>
 ```
 
+You can also use existing ykfde-enroll script, see ykfde-enroll -h for help.
+```
+sudo ykfde-enroll -d /dev/<device> -s <keyslot_number>
+```
+For unlocking existing device on running system you can use ykfde-open script, see ykfde-open -h for help
+```
+sudo ykfde-open -d /dev/<device> -n <container_name>
+```
+
 ## Initramfs hooks instalation and configuration
 
 Install all the needed scripts by issuing:
