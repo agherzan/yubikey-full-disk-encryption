@@ -19,10 +19,10 @@ while getopts ":s:d:hcv" opt; do
 		YKFDE_LUKS_DEV=$OPTARG
 		echo "setting disk to $OPTARG."
 		;;
-	c)      CLEAR_KEY_SLOT=1
+	c)	CLEAR_KEY_SLOT=1
 		echo "clearing LUKS key slot"
 		;;
-	v)      DBG=1
+	v)	DBG=1
 		echo "debugging enabled"
 		;;
 	h)
