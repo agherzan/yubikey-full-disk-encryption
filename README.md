@@ -8,6 +8,40 @@ Be aware that this was only tested and intended for:
 * Archlinux
 * YubiKey 4
 
+## LUKS passphrase creation scheme
+
+Passphrase for unlocking volumes encrypted with LUKS can be created in two ways using [Yubikey challenge-response](https://www.yubico.com/products/services-software/personalization-tools/challenge-response) feature:
+
+* Challenge only mode (1FA)
+* Challenge + password mode (2FA)
+
+In *Challenge only mode* you have to create custom challenge (1-64 characters length) and write it to *ykfde.conf*. Keep in mind that challenge you set will be stored in cleartext inside in */etc/ykfde.conf* and initramfs image:
+
+```
+YKFDE_CHALLENGE=12345678
+```
+
+Yubikey response which is 40 character length string can look like this *bd438575f4e8df965c80363f8aa6fe1debbe9ea9* and will be used as your LUKS passphrase. In this mode possession of your yubikey is enough to unlock LUKS encrypted volumes (1FA). It allows for easy unlocking volumes on boot without user action.
+
+In *Challenge + password mode* you will be asked to provide custom *password* which will hashed using SHA256 algorithm to achieve maximum (64) character length for any given password and used as a challenge:
+
+
+```
+YKFDE_CHALLENGE= password -> printf password | sha256sum | awk '{print $1}' -> 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+```
+
+This password will never be stored and you have to provide it everytime you want unlock LUKS volume. It will be concatenated with yubikey response and assembled as your LUKS passphrase with 104 (64+40) character length:
+
+```
+CHALLENGE=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+RESPONSE=bd438575f4e8df965c80363f8aa6fe1debbe9ea9
+LUKS passphrase=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8bd438575f4e8df965c80363f8aa6fe1debbe9ea9
+```
+
+This strong passphrase cannot be broken by bruteforce. To recreate it you need both your password (something you know) and your yubikey (something you have) which means it's real 2FA.
+
+Keep in mind that above doesn't protect you from physical tampering like *Evil maid attack* and from *malware* running after you unlock and boot your system. Use security tools designed to prevent those attacks.
+
 ## LUKS partition configuration
 
 In order to unlock the encrypted partition, this project relies on a yubikey in challenge-response HMAC mode. The challenge is in a configuration file while the response is one (or the only) password used in the LUKS key slots.
@@ -93,6 +127,7 @@ systemctl enable ykfde-suspend.service
 * Adds makepkg integration and PKGBUILD
 * Hash password with sha256.
 * Adds ykfde-open and ykfde-enroll scripts
+* Adds design information in Readme
 
 ## Security
 
