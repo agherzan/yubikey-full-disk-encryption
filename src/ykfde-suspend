@@ -75,6 +75,9 @@ if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == 
     mount -o remount,"$MOUNT_OPTS",barrier=0 /
 fi
 
+# Synchronize filesystems before luksSuspend   
+sync
+
 # Hand over execution to script inside initramfs
 cd "${INITRAMFS_DIR}"
 chroot . /bin/suspend "$CRYPTNAME"
