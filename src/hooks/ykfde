@@ -64,7 +64,7 @@ ykfde_challenge_response() {
     [ "$DBG" ] && printf "\n   Got as response: '$_passphrase'\n"
 
     if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
-      _passphrase="$_passphrase$_pw"
+      _passphrase="$_pw$_passphrase"
     fi
 }
 
