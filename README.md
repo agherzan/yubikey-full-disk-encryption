@@ -105,7 +105,7 @@ Reboot and test you configuration.
 
 You can enable ykfde-suspend module which allows for automatically locking encrypted LUKS containers and wiping keys from memory on suspend and unlocking them on resume by using luksSuspend, luksResume commands. Based on https://github.com/vianney/arch-luks-suspend
 
-1. Edit /etc/mkinitcpio.conf and make sure the following hooks are enabled:udev, shutdown, suspend.
+1. Edit /etc/mkinitcpio.conf and make sure the following hooks are enabled: udev, ykfde, shutdown.
 2. Enable related systemd service:
 
 ```
