@@ -3,11 +3,6 @@
 set -e
 . /etc/ykfde.conf
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "You must be root." 1>&2
-  exit 1
-fi
-
 while getopts ":d:n:hv" opt; do
   case $opt in
 	d)
@@ -74,6 +69,20 @@ fi
 
 [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
 [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
-printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1;
+
+if [ "$(id -u)" -eq 0 ]; then
+  printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1;
+else
+  expect <(cat <<EXPECTSCRIPT
+    set timeout -1
+    spawn udisksctl unlock -b "$YKFDE_LUKS_DEV"
+    match_max 100000
+    expect -exact "Passphrase: "
+    send -- "${_passphrase}\\r"
+    expect eof
+EXPECTSCRIPT
+)
+
+fi
 
 exit 0
