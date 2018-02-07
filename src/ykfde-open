@@ -3,7 +3,7 @@
 set -e
 . /etc/ykfde.conf
 
-while getopts ":d:n:hv" opt; do
+while getopts ":d:n:hvp" opt; do
   case $opt in
 	d)
 		YKFDE_LUKS_DEV=$OPTARG
@@ -16,11 +16,15 @@ while getopts ":d:n:hv" opt; do
 	v)	DBG=1
 		echo "debugging enabled"
 		;;
+	p)  YKFDE_PRINT_ONLY=1
+		echo "showing complied cleartext passphrase without unlocking"
+		;;
 	h)
 		echo 
 		echo " -d <partition>: select existing partition"
 		echo " -n <name>     : set the new container name"
 		echo " -v            : show input/output in cleartext"
+		echo " -p            : show cleartext passphrase without unlocking"
 		echo
 		exit 1
 		;;
@@ -30,12 +34,14 @@ while getopts ":d:n:hv" opt; do
   esac
 done
 
-if [ -z "$YKFDE_LUKS_DEV" ]; then
-    echo "Please select existing partition using -d option, see ykfde-open -h for help."
-    exit 1
-fi
+if [ -z "$YKFDE_PRINT_ONLY" ] ; then
+	if [ -z "$YKFDE_LUKS_DEV" ]; then
+		echo "Please select existing partition using -d option, see ykfde-open -h for help."
+		exit 1
+	fi
 
-echo "This script will try opening $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, exit now!"
+	echo "This script will try opening $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, exit now!"
+fi
 
 
 if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
@@ -65,6 +71,11 @@ fi
 
 if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
     _passphrase="$_pw$_passphrase"
+fi
+
+if [ -n "$YKFDE_PRINT_ONLY" ] ; then
+	echo " > Passphrase: $_passphrase"
+	exit 0
 fi
 
 [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
