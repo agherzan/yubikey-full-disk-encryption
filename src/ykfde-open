@@ -16,7 +16,7 @@ while getopts ":d:n:hvp" opt; do
 	v)	DBG=1
 		echo "debugging enabled"
 		;;
-	p)  YKFDE_PRINT_ONLY=1
+	p)	YKFDE_PRINT_ONLY=1
 		echo "showing complied cleartext passphrase without unlocking"
 		;;
 	h)
