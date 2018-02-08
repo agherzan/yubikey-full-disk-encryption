@@ -23,33 +23,35 @@ ykfde_challenge_response() {
 
     [ "$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT" -gt 0 ] && _yubikey_timeout_str="$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT seconds"
 
-    # Challenge is provided so let's try yubikey
     _starttime=$(date +%s)
     echo " > Waiting $_yubikey_timeout_str for YubiKey..."
 
     while [ -z "$_yubikey_detected" ]; do
-      _endtime=$(date +%s); _usedtime=$(( _endtime - _starttime ));
-    if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
-      local _pw="";
-      echo " > Please provide password which will be used as challenge."
-      while [ -z "$_pw" ]; do
-      printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
-      _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
-      done
-      [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
-      YKFDE_CHALLENGE="$_pw"
-    fi
-      [ "$DBG" ] && printf "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
-      _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"; _rc=$?;
-      [ "$DBG" ] && echo "[$_rc] '$_tmp'"
-      [ $_rc -eq 0 ] && _yubikey_detected=1;
-      if [ "$_yubikey_timeout" -eq -1 ] || [ $_usedtime -le "$_yubikey_timeout" ]; then
-          sleep 0.5
-      else
-          echo "    TIMEOUT - Giving up with Challenge-Response!"
-          return 1 # timeout
-      fi
+        _endtime=$(date +%s) 
+        _usedtime=$(( _endtime - _starttime ))
+        [ "$DBG" ] && printf "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
+        _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"; _rc=$?;
+        [ "$DBG" ] && echo "[$_rc] '$_tmp'"
+        [ $_rc -eq 0 ] && _yubikey_detected=1;
+        if [ "$_yubikey_timeout" -eq -1 ] || [ $_usedtime -le "$_yubikey_timeout" ]; then
+            sleep 0.5
+        else
+            echo "    TIMEOUT - Giving up with Challenge-Response!"
+            return 1 # timeout
+        fi
     done
+
+    if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+        local _pw="";
+        echo " > Please provide password which will be used as challenge."
+        while [ -z "$_pw" ]; do
+            printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
+            _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+        done
+        [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
+        YKFDE_CHALLENGE="$_pw"
+    fi
+
     echo "   YubiKey detected! - Don't forget to press its button if necessary..."
     [ "$DBG" ] && echo "   Running NOW: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
