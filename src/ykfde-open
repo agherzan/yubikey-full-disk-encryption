@@ -21,7 +21,7 @@ while getopts ":d:n:hvp" opt; do
 		;;
 	h)
 		echo 
-		echo " -d <partition>: select existing partition"
+		echo " -d <partition>: select an existing partition"
 		echo " -n <name>     : set the new container name"
 		echo " -v            : show input/output in cleartext"
 		echo " -p            : show cleartext passphrase without unlocking"
@@ -36,11 +36,11 @@ done
 
 if [ -z "$YKFDE_PRINT_ONLY" ] ; then
 	if [ -z "$YKFDE_LUKS_DEV" ]; then
-		echo "Please select existing partition using -d option, see ykfde-open -h for help."
+		echo "Please select an existing partition using -d option, see ykfde-open -h for help."
 		exit 1
 	fi
 
-	echo "This script will try opening $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, exit now!"
+	echo "This script will try to open the $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, please abort."
 fi
 
 
