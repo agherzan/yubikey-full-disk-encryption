@@ -8,6 +8,8 @@ Be aware that this was only tested and intended for:
 * Archlinux
 * YubiKey 4
 
+There is similar project targeting Debian/Ubuntu systems: https://github.com/cornelinux/yubikey-luks
+
 ## LUKS passphrase creation scheme
 
 The passphrase for unlocking volumes encrypted with LUKS can be created in two ways using [Yubikey challenge-response](https://www.yubico.com/products/services-software/personalization-tools/challenge-response) feature:
@@ -76,9 +78,15 @@ You can also use the existing ykfde-enroll script, see ykfde-enroll -h for help.
 ```
 sudo ykfde-enroll -d /dev/<device> -s <keyslot_number>
 ```
-For unlocking an existing device on a running system, you can use ykfde-open script, see ykfde-open -h for help
+For unlocking an existing device on a running system, you can use ykfde-open script, see ykfde-open -h for help.
+
+As unpriveliged user using udisksctl:
 ```
-sudo ykfde-open -d /dev/<device> -n <container_name>
+ykfde-open -d /dev/<device>
+```
+As root using cryptsetup:
+```
+ykfde-open -d /dev/<device> -n <container_name>
 ```
 
 ## Initramfs hooks instalation and configuration
@@ -88,6 +96,7 @@ Install all the needed scripts by issuing:
 ```
 sudo make install
 ```
+or use makepkg on existing PKGBUILD and install it through pacman: https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/PKGBUILD
 
 Edit the /etc/ykfde.conf file.
 
@@ -124,10 +133,11 @@ systemctl enable ykfde-suspend.service
 * Added a testrun.sh Test script to test the hook not first during boot-up ;)
 * Added ykfde-suspend module
 * Fixes most issues detected by shellcheck static analysis tool
-* Adds makepkg integration and PKGBUILD
+* Added makepkg integration and PKGBUILD
 * Hash password with sha256.
-* Adds ykfde-open and ykfde-enroll scripts
-* Adds design information in Readme
+* Added ykfde-open and ykfde-enroll scripts
+* Added design information in Readme
+* Added udisksctl support
 
 ## Security
 
