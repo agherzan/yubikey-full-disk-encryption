@@ -53,7 +53,7 @@ ykfde_challenge_response() {
     fi
 
     echo "   Remember to touch the device if necessary."
-    [ "$DBG" ] && echo "   Running NOW: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
+    [ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     if [ -z "$_passphrase" ]; then
       printf "\n   Yubikey did not provide a response - Lets try again!\n"
