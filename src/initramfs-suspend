@@ -21,7 +21,7 @@ echo mem > /sys/power/state
 [ -z "${cryptname}" ] ||
     while true; do
         if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
-            echo " > Please provide password which will be used as challenge."
+            echo " > Please provide the challenge password."
             while [ -z "$_pw" ]; do
             printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
             _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
@@ -33,15 +33,15 @@ echo mem > /sys/power/state
         [ "$DBG" ] && printf "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
         _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
         [ "$DBG" ] && echo "$_tmp"
-        [ "$DBG" ] && echo "   Running NOW: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
+        [ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
         _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
         if [ -z "$_passphrase" ]; then
-            printf "\n   NO response from YubiKey!? - We try again! (so press the button now?!)...\n"
+            printf "\n   Yubikey did not provide a response - Lets try again!\n"
             _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
         fi
 
         if [ -z "$_passphrase" ]; then
-            printf "\n   NO response from YubiKey!? - Last trial of ykchalresp...\n"
+            printf "\n   Yubikey did not provide a response - Lets try again!\n"
             _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
         fi
         [ "$DBG" ] && printf "\n   Got as response: '$_passphrase'\n"
@@ -49,7 +49,7 @@ echo mem > /sys/power/state
         if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
             _passphrase="$_pw$_passphrase"
         fi
-        [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
+        [ "$DBG" ] && echo " > Passing '$_passphrase' to cryptsetup!"
         [ "$DBG" ] && echo " > Decrypting (cryptsetup luksResume \"${cryptname}\")..." || echo " > Decrypting (cryptsetup luksResume)..."
         printf %s "$_passphrase"| cryptsetup luksResume "${cryptname}" 2>&1;
         [ $? -le 1 ] && break
