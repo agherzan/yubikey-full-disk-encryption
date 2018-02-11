@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/ash
 
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
 
