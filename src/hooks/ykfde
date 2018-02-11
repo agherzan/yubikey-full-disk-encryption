@@ -56,11 +56,11 @@ ykfde_challenge_response() {
     [ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     if [ -z "$_passphrase" ]; then
-      printf "\n   Yubikey did not provide a response - Lets try again!\n"
+      printf "\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\n"
       _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     fi
     if [ -z "$_passphrase" ]; then
-      printf "\n   Yubikey did not provide a response - Final attempt!\n"
+      printf "\n   Yubikey did not provide a response - Initializing final attempt, touch the device if necessary.\n"
       _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     fi
     [ "$DBG" ] && printf "\n   Received response: '$_passphrase'\n"
@@ -85,7 +85,7 @@ ykfde_do_it() {
           printf " > Challenge-response failed.\n   Falling back to manual passphrase.\n"
           [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
         else
-          echo " > Passphrase to needed to unlock disk."
+          echo " > Passphrase needed to unlock disk."
         fi
 
         printf "   Enter passphrase: "; if [ "$DBG" ]; then read -r _passphrase; else read -r -s _passphrase; fi
