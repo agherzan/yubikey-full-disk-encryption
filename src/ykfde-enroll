@@ -94,6 +94,7 @@ fi
 
 [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
 echo "If prompted for a passphrase, enter the current passphrase for the LUKS container. This is the old LUKS passphrase."
+printf " Enter password: "; if [ "$DBG" ]; then read -r OLD; else read -r -s OLD; fi
 [ "$DBG" ] && echo " > Adding new LUKS key (cryptsetup --key-slot=\"$KEY_SLOT\" luksAddKey \"$YKFDE_LUKS_DEV\")..." || echo " > Decrypting (cryptsetup luksAddKey)..."
 printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="$KEY_SLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1;
 
