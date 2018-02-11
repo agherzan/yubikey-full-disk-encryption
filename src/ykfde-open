@@ -63,7 +63,7 @@ echo "   Remember to touch the device if necessary."
 _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    printf "\n   Yubikey did not provide a response - Lets try again!\n"
+    printf "\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\n"
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 fi
 
