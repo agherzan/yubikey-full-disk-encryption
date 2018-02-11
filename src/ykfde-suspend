@@ -81,7 +81,7 @@ sync
 
 # Hand over execution to script inside initramfs
 cd "${INITRAMFS_DIR}"
-chroot . /bin/suspend "$CRYPTNAME"
+chroot . /ykfde-suspend "$CRYPTNAME"
 
 # Restore original mount options if necessary
 if ((REMOUNT)); then
