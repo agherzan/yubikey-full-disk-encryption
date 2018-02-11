@@ -21,7 +21,7 @@ while getopts ":d:n:hvp" opt; do
 		;;
 	h)
 		echo 
-		echo " -d <partition>: select existing partition"
+		echo " -d <partition>: select an existing partition"
 		echo " -n <name>     : set the new container name"
 		echo " -v            : show input/output in cleartext"
 		echo " -p            : show cleartext passphrase without unlocking"
@@ -36,16 +36,16 @@ done
 
 if [ -z "$YKFDE_PRINT_ONLY" ] ; then
 	if [ -z "$YKFDE_LUKS_DEV" ]; then
-		echo "Please select existing partition using -d option, see ykfde-open -h for help."
+		echo "Please select an existing partition using -d option, see ykfde-open -h for help."
 		exit 1
 	fi
 
-	echo "This script will try opening $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, exit now!"
+	echo "This script will try to open the $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, please abort."
 fi
 
 
 if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
-    echo " > Please provide password which will be used as challenge."
+    echo " > Please provide the challenge password."
     while [ -z "$_pw" ]; do
     printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
     _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
@@ -58,16 +58,16 @@ fi
 _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
 [ "$DBG" ] && echo "$_tmp"
 
-echo "   Don't forget to press its button if necessary..."
-[ "$DBG" ] && echo "   Running NOW: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
+echo "   Remember to touch the device if necessary."
+[ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
 _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    printf "\n   NO response from YubiKey!? - We try again! (so press the button now?!)...\n"
+    printf "\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\n"
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 fi
 
-[ "$DBG" ] && printf "\n   Got as response: '$_passphrase'\n"
+[ "$DBG" ] && printf "\n   Received response: '$_passphrase'\n"
 
 if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
     _passphrase="$_pw$_passphrase"
@@ -78,7 +78,7 @@ if [ -n "$YKFDE_PRINT_ONLY" ] ; then
 	exit 0
 fi
 
-[ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
+[ "$DBG" ] && echo " > Passing '$_passphrase' to cryptsetup!"
 [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
 
 if [ "$(id -u)" -eq 0 ]; then
