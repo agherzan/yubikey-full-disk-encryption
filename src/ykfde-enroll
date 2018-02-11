@@ -82,7 +82,7 @@ echo "   Remember to touch the device if necessary."
 _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    printf "\n   Yubikey did not provide a response - Lets try again!\n"
+    printf "\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\n"
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 fi
 
@@ -93,7 +93,7 @@ if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
 fi
 
 [ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
-echo "If prompted for a passphrase, enter the old registered passphrase for your LUKS container."
+echo "If prompted for a passphrase, enter the current passphrase for the LUKS container. This is the old LUKS passphrase."
 [ "$DBG" ] && echo " > Adding new LUKS key (cryptsetup --key-slot=\"$KEY_SLOT\" luksAddKey \"$YKFDE_LUKS_DEV\")..." || echo " > Decrypting (cryptsetup luksAddKey)..."
 printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="$KEY_SLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1;
 
