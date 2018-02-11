@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e -u
 trap 'echo "Press ENTER to continue."; read dummy' ERR
@@ -44,7 +44,7 @@ cryptdevice_mount_options() {
 ################################################################################
 ## Main script
 
-[ -e "${INITRAMFS_DIR}/bin/suspend" ] || exec /usr/lib/systemd/systemd-sleep suspend
+[ -e "${INITRAMFS_DIR}/ykfde-suspend" ] || exec /usr/lib/systemd/systemd-sleep suspend
 
 # Prepare chroot
 trap umount_initramfs EXIT
@@ -64,6 +64,7 @@ systemctl stop systemd-udevd.service
 
 systemctl stop systemd-journald.socket
 systemctl stop systemd-journald-dev-log.socket
+systemctl stop systemd-journald-audit.socket
 systemctl stop systemd-journald.service
 
 # Journalled ext4 filesystems in kernel versions 3.11+ will block suspend
@@ -88,6 +89,7 @@ if ((REMOUNT)); then
 fi
 
 systemctl start systemd-journald.service
+systemctl start systemd-journald-audit.socket
 systemctl start systemd-journald-dev-log.socket
 systemctl start systemd-journald.socket
 

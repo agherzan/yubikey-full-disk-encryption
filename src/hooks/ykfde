@@ -95,9 +95,13 @@ ykfde_do_it() {
     [ -e "$YKFDE_LUKS_DEV" ] || { ykfde_err 003 "YKFDE cannot find LUKS device '$YKFDE_LUKS_DEV'.\nPlease check YKFDE_DISK_UUID ($YKFDE_DISK_UUID) and/or YKFDE_LUKS_DEV variable(s) in '$YKFDE_CONFIG_FILE'."; return 1; }
 
     [ "$DBG" ] && echo " > Passing '$_passphrase' to cryptsetup!"
-    [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
-
-    _tmp="$(printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1)";
+    if [ -n "$RESUME" ]; then
+        [ "$DBG" ] && echo " > Decrypting (cryptsetup luksResume \"$cryptname\"..." || echo " > Decrypting (cryptsetup luksResume)..."
+        _tmp="$(printf %s "$_passphrase"| cryptsetup luksResume "${cryptname}" 2>&1;)";
+    else
+        [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
+        _tmp="$(printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1)";
+    fi
     _rc=$?;
 
     if [ $_rc -eq 0 ]; then
@@ -130,13 +134,10 @@ run_hook() {
     [ -z "$YKFDE_CRYPTSETUP_TRIALS" ] && YKFDE_CRYPTSETUP_TRIALS="$DEFAULT_CRYPTSETUP_TRIALS"
 
     # sanity checks:
-    [ $YKFDE_CRYPTSETUP_TRIALS -gt 0 ] || { ykfde_err 006 "YKFDE_CRYPTSETUP_TRIALS needs to be higher than 0."; return 1; }
-
-    [ "$DBG" ] && echo " > Settling udevadm."
-    udevadm settle || { ykfde_err 004 "Failed to settle udevadm."; return 1; }
+    [ $YKFDE_CRYPTSETUP_TRIALS -gt 0 ] || { ykfde_err 004 "YKFDE_CRYPTSETUP_TRIALS needs to be higher than 0."; return 1; }
 
     [ "$DBG" ] && echo " > modprobing dm-crypt"
-    tmp="$(modprobe -a dm-crypt 2>&1)" || { ykfde_err 005 "Failed executing 'modprobe -a -q dm-crypt':\n$tmp"; return 1; }
+    _tmp="$(modprobe -a -q dm-crypt >/dev/null 2>&1)"
 
     local trial_nr=1;
     local what="$YKFDE_DISK_UUID"; [ -n "$YKFDE_LUKS_NAME" ] && s=" $YKFDE_LUKS_NAME";
