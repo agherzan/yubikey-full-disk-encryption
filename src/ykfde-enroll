@@ -13,7 +13,7 @@ while getopts ":s:d:hcv" opt; do
   case $opt in
 	s)
 		KEY_SLOT=$OPTARG
-		echo "setting LUKS key slot to $OPTARG."
+		printf '%s\n' "setting LUKS key slot to $OPTARG."
 		;;
 	d)
 		YKFDE_LUKS_DEV=$OPTARG
@@ -51,17 +51,17 @@ if [ -z "$KEY_SLOT" ]; then
 fi
 
 if [ $CLEAR_KEY_SLOT -eq 1 ]; then
-	echo "Killing LUKS slot $KEY_SLOT"
+	printf '%s\n' "Killing LUKS slot $KEY_SLOT"
 	cryptsetup luksKillSlot "$YKFDE_LUKS_DEV" "$KEY_SLOT"
 fi
 
-echo "This script will utilize slot $KEY_SLOT on drive $YKFDE_LUKS_DEV.  If this is not what you intended, please abort."
+printf '%s\n' "This script will utilize slot $KEY_SLOT on drive $YKFDE_LUKS_DEV.  If this is not what you intended, please abort."
 
 if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
     echo " > Please provide the challenge password."
     while [ -z "$_pw" ]; do
     printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
-    echo " > Please repeat the password."
+    printf "\\n > Please repeat the password.\\n"
     printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw2; else read -r -s _pw2; fi
     if [ "$_pw" != "$_pw2" ]; then
 	echo "Passwords do not match."
@@ -73,29 +73,29 @@ if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
     YKFDE_CHALLENGE="$_pw"
 fi
 
-[ "$DBG" ] && printf "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
+[ "$DBG" ] && printf %s "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
 _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
-[ "$DBG" ] && echo "$_tmp"
+[ "$DBG" ] && printf '%s\n' "$_tmp"
 
 echo "   Remember to touch the device if necessary."
-[ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
+[ "$DBG" ] && printf '%s\n' "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
 _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    printf "\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\n"
+    echo "   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 fi
 
-[ "$DBG" ] && printf "\n   Received response: '$_passphrase'\n"
+[ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
 if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
     _passphrase="$_pw$_passphrase"
 fi
 
-[ "$DBG" ] && echo " > Using '$_passphrase' with cryptsetup!"
+[ "$DBG" ] && printf '%s\n' " > Using '$_passphrase' with cryptsetup!"
 echo "If prompted for a passphrase, enter the current passphrase for the LUKS container. This is the old LUKS passphrase."
 printf " Enter password: "; if [ "$DBG" ]; then read -r OLD; else read -r -s OLD; fi
-[ "$DBG" ] && echo " > Adding new LUKS key (cryptsetup --key-slot=\"$KEY_SLOT\" luksAddKey \"$YKFDE_LUKS_DEV\")..." || echo " > Decrypting (cryptsetup luksAddKey)..."
+[ "$DBG" ] && echo " > Adding new LUKS key (cryptsetup --key-slot=\"$KEY_SLOT\" luksAddKey \"$YKFDE_LUKS_DEV\")..." || printf "\\n > Decrypting (cryptsetup luksAddKey)...\\n"
 printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="$KEY_SLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1;
 
 exit 0
