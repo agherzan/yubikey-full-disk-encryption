@@ -7,17 +7,17 @@ while getopts ":d:n:hvp" opt; do
   case $opt in
 	d)
 		YKFDE_LUKS_DEV=$OPTARG
-		echo "setting disk to $OPTARG."
+		printf '%s\n' "INFO: Setting disk to $OPTARG."
 		;;
 	n)
 		YKFDE_LUKS_NAME=$OPTARG
-		echo "setting name to $OPTARG."
+		printf '%s\n' "INFO: Setting name to $OPTARG."
 		;;
 	v)	DBG=1
-		echo "debugging enabled"
+		echo "INFO: Debugging enabled"
 		;;
 	p)	YKFDE_PRINT_ONLY=1
-		echo "showing complied cleartext passphrase without unlocking"
+		echo "INFO: Showing complied cleartext passphrase without unlocking"
 		;;
 	h)
 		echo 
@@ -29,7 +29,7 @@ while getopts ":d:n:hvp" opt; do
 		exit 1
 		;;
 	\?)
-		echo "Invalid option: -$OPTARG" >&2
+		printf '%s\n' "Invalid option: -$OPTARG" >&2
 		;;
   esac
 done
@@ -40,11 +40,12 @@ if [ -z "$YKFDE_PRINT_ONLY" ] ; then
 		exit 1
 	fi
 
-	echo "This script will try to open the $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, please abort."
+printf '%s\n' "INFO: This script will try to open the $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, please abort."
+
 fi
 
 
-if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
     echo " > Please provide the challenge password."
     while [ -z "$_pw" ]; do
     printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
@@ -54,32 +55,32 @@ if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
     YKFDE_CHALLENGE="$_pw"
 fi
 
-[ "$DBG" ] && printf "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
+[ "$DBG" ] && printf %s "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
 _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
-[ "$DBG" ] && echo "$_tmp"
+[ "$DBG" ] && printf '%s\n' "$_tmp"
 
 echo "   Remember to touch the device if necessary."
-[ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
+[ "$DBG" ] && printf '%s\n' "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
 _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    printf "\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\n"
+    echo "   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 fi
 
-[ "$DBG" ] && printf "\n   Received response: '$_passphrase'\n"
+[ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
 if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
     _passphrase="$_pw$_passphrase"
 fi
 
 if [ -n "$YKFDE_PRINT_ONLY" ] ; then
-	echo " > Passphrase: $_passphrase"
+	printf '%s\n' " > Passphrase: $_passphrase"
 	exit 0
 fi
 
-[ "$DBG" ] && echo " > Passing '$_passphrase' to cryptsetup!"
-[ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
+[ "$DBG" ] && printf '%s\n' " > Passing '$_passphrase' to cryptsetup!"
+[ "$DBG" ] && printf '%s\n' " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
 
 if [ "$(id -u)" -eq 0 ]; then
   printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1;
