@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-CLEAR_KEY_SLOT=0
 
 set -e
 . /etc/ykfde.conf
@@ -12,18 +11,18 @@ fi
 while getopts ":s:d:hcv" opt; do
   case $opt in
 	s)
-		KEY_SLOT=$OPTARG
-		printf '%s\n' "setting LUKS key slot to $OPTARG."
+		KEY_SLOT="$OPTARG"
+		printf '%s\n' "INFO: Setting LUKS key slot to \"$OPTARG\"."
 		;;
 	d)
-		YKFDE_LUKS_DEV=$OPTARG
-		echo "setting disk to $OPTARG."
+		YKFDE_LUKS_DEV="$OPTARG"
+		printf '%s\n' "INFO: Setting disk to \"$OPTARG\"."
 		;;
 	c)	CLEAR_KEY_SLOT=1
-		echo "clearing LUKS key slot"
+		echo "INFO: clearing LUKS key slot"
 		;;
 	v)	DBG=1
-		echo "debugging enabled"
+		echo "INFO: Debugging enabled"
 		;;
 	h)
 		echo 
@@ -35,7 +34,7 @@ while getopts ":s:d:hcv" opt; do
 		exit 1
 		;;
 	\?)
-		echo "Invalid option: -$OPTARG" >&2
+		printf '%s\n' "Invalid option: \"-$OPTARG\"" >&2
 		;;
   esac
 done
@@ -50,14 +49,14 @@ if [ -z "$KEY_SLOT" ]; then
     exit 1
 fi
 
-if [ $CLEAR_KEY_SLOT -eq 1 ]; then
+if [ -n "$CLEAR_KEY_SLOT" ]; then
 	printf '%s\n' "Killing LUKS slot $KEY_SLOT"
 	cryptsetup luksKillSlot "$YKFDE_LUKS_DEV" "$KEY_SLOT"
 fi
 
-printf '%s\n' "This script will utilize slot $KEY_SLOT on drive $YKFDE_LUKS_DEV.  If this is not what you intended, please abort."
+printf '%s\n' "This script will utilize slot \"$KEY_SLOT\" on drive \"$YKFDE_LUKS_DEV\".  If this is not what you intended, please abort."
 
-if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
     echo " > Please provide the challenge password."
     while [ -z "$_pw" ]; do
     printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
@@ -88,7 +87,7 @@ fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
     _passphrase="$_pw$_passphrase"
 fi
 

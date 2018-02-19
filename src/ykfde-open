@@ -6,12 +6,12 @@ set -e
 while getopts ":d:n:hvp" opt; do
   case $opt in
 	d)
-		YKFDE_LUKS_DEV=$OPTARG
-		printf '%s\n' "INFO: Setting disk to $OPTARG."
+		YKFDE_LUKS_DEV="$OPTARG"
+		printf '%s\n' "INFO: Setting disk to \"$OPTARG\"."
 		;;
 	n)
-		YKFDE_LUKS_NAME=$OPTARG
-		printf '%s\n' "INFO: Setting name to $OPTARG."
+		YKFDE_LUKS_NAME="$OPTARG"
+		printf '%s\n' "INFO: Setting name to \"$OPTARG\"."
 		;;
 	v)	DBG=1
 		echo "INFO: Debugging enabled"
@@ -29,7 +29,7 @@ while getopts ":d:n:hvp" opt; do
 		exit 1
 		;;
 	\?)
-		printf '%s\n' "Invalid option: -$OPTARG" >&2
+		printf '%s\n' "Invalid option: \"-$OPTARG\"" >&2
 		;;
   esac
 done
@@ -40,7 +40,7 @@ if [ -z "$YKFDE_PRINT_ONLY" ] ; then
 		exit 1
 	fi
 
-printf '%s\n' "INFO: This script will try to open the $YKFDE_LUKS_NAME LUKS container on drive $YKFDE_LUKS_DEV . If this is not what you intended, please abort."
+printf '%s\n' "This script will try to open the \"$YKFDE_LUKS_NAME\" LUKS container on drive \"$YKFDE_LUKS_DEV\" . If this is not what you intended, please abort."
 
 fi
 
@@ -70,7 +70,7 @@ fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
     _passphrase="$_pw$_passphrase"
 fi
 
