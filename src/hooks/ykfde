@@ -7,8 +7,8 @@ DEFAULT_CHALLENGE_YUBIKEY_INSERT_TIMEOUT=30;   # default value for YKFDE_CHALLEN
 
 
 ykfde_err() { local rc="$?"; local code="$1"; local msg="$2";
-  [ -n "$msg" ] && msg="\nERROR $code [rc=$rc]: $msg\n" || msg="\nERROR $code [rc=$rc]";
-  printf "$msg"; #exit 1;
+  [ -n "$msg" ] && msg="\\nERROR $code [rc=$rc]: $msg\\n" || msg="\\nERROR $code [rc=$rc]";
+  printf %s "$msg"; #exit 1;
 }
 
 ykfde_challenge_response() {
@@ -29,7 +29,7 @@ ykfde_challenge_response() {
     while [ -z "$_yubikey_detected" ]; do
         _endtime=$(date +%s) 
         _usedtime=$(( _endtime - _starttime ))
-        [ "$DBG" ] && printf "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
+        [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
         _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"; _rc=$?;
         [ "$DBG" ] && echo "[$_rc] '$_tmp'"
         [ $_rc -eq 0 ] && _yubikey_detected=1;
@@ -41,7 +41,7 @@ ykfde_challenge_response() {
         fi
     done
 
-    if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+    if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
         local _pw="";
         echo " > Please provide the challenge password."
         while [ -z "$_pw" ]; do
@@ -56,16 +56,16 @@ ykfde_challenge_response() {
     [ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     if [ -z "$_passphrase" ]; then
-      printf "\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\n"
+      printf "\\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
       _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     fi
     if [ -z "$_passphrase" ]; then
-      printf "\n   Yubikey did not provide a response - Initializing final attempt, touch the device if necessary.\n"
+      printf "\\n   Yubikey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
       _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     fi
-    [ "$DBG" ] && printf "\n   Received response: '$_passphrase'\n"
+    [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-    if [ -n "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" = "1" ]; then
+    if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
       _passphrase="$_pw$_passphrase"
     fi
 }
@@ -82,7 +82,7 @@ ykfde_do_it() {
 
     if [ -z "$_passphrase" ]; then
         if [ -n "$YKFDE_CHALLENGE" ]; then
-          printf " > Challenge-response failed.\n   Falling back to manual passphrase.\n"
+          printf " > Challenge-response failed.\\n   Falling back to manual passphrase.\\n"
           [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
         else
           echo " > Passphrase needed to unlock disk."
@@ -92,7 +92,7 @@ ykfde_do_it() {
         [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
     fi
 
-    [ -e "$YKFDE_LUKS_DEV" ] || { ykfde_err 003 "YKFDE cannot find LUKS device '$YKFDE_LUKS_DEV'.\nPlease check YKFDE_DISK_UUID ($YKFDE_DISK_UUID) and/or YKFDE_LUKS_DEV variable(s) in '$YKFDE_CONFIG_FILE'."; return 1; }
+    [ -e "$YKFDE_LUKS_DEV" ] || { ykfde_err 003 "YKFDE cannot find LUKS device '$YKFDE_LUKS_DEV'.\\nPlease check YKFDE_DISK_UUID ($YKFDE_DISK_UUID) and/or YKFDE_LUKS_DEV variable(s) in '$YKFDE_CONFIG_FILE'."; return 1; }
 
     [ "$DBG" ] && echo " > Passing '$_passphrase' to cryptsetup!"
     if [ -n "$RESUME" ]; then
@@ -142,7 +142,7 @@ run_hook() {
     local trial_nr=1;
     local what="$YKFDE_DISK_UUID"; [ -n "$YKFDE_LUKS_NAME" ] && s=" $YKFDE_LUKS_NAME";
     while [ $trial_nr -le $YKFDE_CRYPTSETUP_TRIALS ]; do
-      printf "\nAttempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $what\n"
+      printf '%s\n' "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $what"
       ykfde_do_it && return 0;
       trial_nr=$(( trial_nr + 1 ));
     done
