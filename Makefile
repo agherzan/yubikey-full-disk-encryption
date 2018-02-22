@@ -6,6 +6,7 @@ install:
 	install -Dm755 src/initramfs-suspend "$(DESTDIR)/usr/lib/ykfde-suspend/initramfs-suspend"
 	install -Dm644 src/ykfde-suspend.service "$(DESTDIR)/usr/lib/systemd/system/ykfde-suspend.service"
 	install -Dm755 src/ykfde-enroll "$(DESTDIR)/usr/bin/ykfde-enroll"
+	install -Dm755 src/ykfde-format "$(DESTDIR)/usr/bin/ykfde-format"
 	install -Dm755 src/ykfde-open "$(DESTDIR)/usr/bin/ykfde-open"
 reinstall:
 	install -Dm644 src/hooks/ykfde "$(DESTDIR)/usr/lib/initcpio/hooks"
@@ -14,6 +15,7 @@ reinstall:
 	install -Dm755 src/initramfs-suspend "$(DESTDIR)/usr/lib/ykfde-suspend/initramfs-suspend"
 	install -Dm644 src/ykfde-suspend.service "$(DESTDIR)/usr/lib/systemd/system/ykfde-suspend.service"
 	install -Dm755 src/ykfde-enroll "$(DESTDIR)/usr/bin/ykfde-enroll"
+	install -Dm755 src/ykfde-format "$(DESTDIR)/usr/bin/ykfde-format"
 	install -Dm755 src/ykfde-open "$(DESTDIR)/usr/bin/ykfde-open"
 test:
 	./testrun.sh
