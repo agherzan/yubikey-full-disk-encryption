@@ -37,7 +37,7 @@ This password will never be stored and you will have to provide it everytime you
 ```
 CHALLENGE=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
 RESPONSE=bd438575f4e8df965c80363f8aa6fe1debbe9ea9
-LUKS passphrase=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8bd438575f4e8df965c80363f8aa6fe1debbe9ea9
+LUKS PASSPHRASE=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8bd438575f4e8df965c80363f8aa6fe1debbe9ea9
 ```
 
 This strong passphrase cannot be broken by bruteforce. To recreate it one would need both your password (something you know) and your yubikey (something you have) which means it's real 2FA.
@@ -89,6 +89,11 @@ As root using cryptsetup:
 ykfde-open -d /dev/<device> -n <container_name>
 ```
 
+For formating new device, you can use ykfde-format script which is wrapper over "cryptsetup luksFormat" command.
+```
+ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha256 --iter-time 5000 /dev/<device>
+```
+
 ## Initramfs hooks instalation and configuration
 
 Install all the needed scripts by issuing:
@@ -138,6 +143,7 @@ systemctl enable ykfde-suspend.service
 * Added ykfde-open and ykfde-enroll scripts
 * Added design information in Readme
 * Added udisksctl support
+* Added ykfde-format script
 
 ## Security
 
