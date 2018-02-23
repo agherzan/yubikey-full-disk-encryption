@@ -40,7 +40,12 @@ if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
     _passphrase="$_pw$_passphrase"
 fi
 
-[ "$DBG" ] && printf '%s\n' " > Using '$_passphrase' with cryptsetup!"
-printf '%s\n' "$_passphrase" | cryptsetup luksFormat "$@" 2>&1;
+if [ -n "$_passphrase" ]; then
+    [ "$DBG" ] && printf '%s\n' " > Using '$_passphrase' with cryptsetup!"
+    printf '%s\n' "$_passphrase" | cryptsetup luksFormat "$@"
+else
+    echo "   Passphrase is empty. Operation aborted."
+    exit 1
+fi
 
 exit 0
