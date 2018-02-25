@@ -12,7 +12,7 @@ There is similar project targeting Debian/Ubuntu systems: https://github.com/cor
 
 ## LUKS passphrase creation scheme
 
-The passphrase for unlocking volumes encrypted with LUKS can be created in two ways using [Yubikey challenge-response](https://www.yubico.com/products/services-software/personalization-tools/challenge-response) feature:
+The passphrase for unlocking volumes encrypted with LUKS can be created in two ways using [YubiKey challenge-response](https://www.yubico.com/products/services-software/personalization-tools/challenge-response) feature:
 
 * Challenge only mode (1FA)
 * Challenge + password mode (2FA)
@@ -23,7 +23,7 @@ In *Challenge only mode* you have to create custom challenge (1-64 characters le
 YKFDE_CHALLENGE=12345678
 ```
 
-The Yubikey response which is a 40 character length string will look like this *bd438575f4e8df965c80363f8aa6fe1debbe9ea9* and will be used as your LUKS passphrase. In this mode possession of your yubikey is enough to unlock a LUKS encrypted volume (1FA). It allows for the easy unlocking of volumes at boot time without need for user action.
+The YubiKey response which is a 40 character length string will look like this *bd438575f4e8df965c80363f8aa6fe1debbe9ea9* and will be used as your LUKS passphrase. In this mode possession of your YubiKey is enough to unlock a LUKS encrypted volume (1FA). It allows for the easy unlocking of volumes at boot time without need for user action.
 
 In *Challenge + password mode* you will be asked to provide a custom *password* which will be hashed using the SHA256 algorithm to achieve the maximum character length(64) for any given password. The hash will be used as the *challenge*:
 
@@ -32,7 +32,7 @@ In *Challenge + password mode* you will be asked to provide a custom *password* 
 YKFDE_CHALLENGE= password -> printf password | sha256sum | awk '{print $1}' -> 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
 ```
 
-This password will never be stored and you will have to provide it everytime you want to unlock the LUKS volume. It will be concatenated with the yubikey response and assembled as your LUKS passphrase for a total character length of 104 (64+40).
+This password will never be stored and you will have to provide it every time you want to unlock the LUKS volume. It will be concatenated with the YubiKey response and assembled as your LUKS passphrase for a total character length of 104 (64+40).
 
 ```
 CHALLENGE=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
@@ -40,13 +40,13 @@ RESPONSE=bd438575f4e8df965c80363f8aa6fe1debbe9ea9
 LUKS PASSPHRASE=5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8bd438575f4e8df965c80363f8aa6fe1debbe9ea9
 ```
 
-This strong passphrase cannot be broken by bruteforce. To recreate it one would need both your password (something you know) and your yubikey (something you have) which means it's real 2FA.
+This strong passphrase cannot be broken by brute force. To recreate it one would need both your password (something you know) and your YubiKey (something you have) which means it's real 2FA.
 
 Keep in mind that the above doesn't protect you from physical tampering like *Evil maid attack* and from *malware* running after you unlock and boot your system. Use security tools designed to prevent those attacks.
 
 ## LUKS partition configuration
 
-In order to unlock the encrypted partition, this project relies on a yubikey in challenge-response HMAC mode. The challenge is in a configuration file while the response is one (or the only) password used in the LUKS key slots.
+In order to unlock the encrypted partition, this project relies on a YubiKey in challenge-response HMAC mode. The challenge is in a configuration file while the response is one (or the only) password used in the LUKS key slots.
 
 First of all we need to set a configuration slot in challenge-response HMAC mode using a command similar to:
 
@@ -80,7 +80,7 @@ sudo ykfde-enroll -d /dev/<device> -s <keyslot_number>
 ```
 For unlocking an existing device on a running system, you can use ykfde-open script, see ykfde-open -h for help.
 
-As unpriveliged user using udisksctl:
+As unprivileged user using udisksctl:
 ```
 ykfde-open -d /dev/<device>
 ```
@@ -89,12 +89,12 @@ As root using cryptsetup:
 ykfde-open -d /dev/<device> -n <container_name>
 ```
 
-For formating new device, you can use ykfde-format script which is wrapper over "cryptsetup luksFormat" command.
+For formatting new device, you can use ykfde-format script which is wrapper over "cryptsetup luksFormat" command.
 ```
 ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha256 --iter-time 5000 /dev/<device>
 ```
 
-## Initramfs hooks instalation and configuration
+## Initramfs hooks installation and configuration
 
 Install all the needed scripts by issuing:
 
@@ -134,7 +134,7 @@ systemctl enable ykfde-suspend.service
 * Added Parameters (see ykfde.conf - e.g. slot, parameterized the sleep 5, because I don't need it ... ;) 
 * Added Possibility to combine Password with Challenge-Response
 * Made the hook/ykfde script overall more robust against typos, less error prone
-* Added YubiKey detection (to complete the wait for yubiKey functionality of hook/ykfde script)
+* Added YubiKey detection (to complete the wait for YubiKey functionality of hook/ykfde script)
 * Added a testrun.sh Test script to test the hook not first during boot-up ;)
 * Added ykfde-suspend module
 * Fixes most issues detected by shellcheck static analysis tool
@@ -148,7 +148,7 @@ systemctl enable ykfde-suspend.service
 ## Security
 
 For a security analysis of this improvement (and the idea to combine password (knowledge) with YubiKey (possession) security please see
-[this very acurate analisis from Cornelinux](https://github.com/cornelinux/yubikey-luks/issues/1#issuecomment-326504799).
+[this very accurate analysis from Cornelinux](https://github.com/cornelinux/yubikey-luks/issues/1#issuecomment-326504799).
 
 ## License
 

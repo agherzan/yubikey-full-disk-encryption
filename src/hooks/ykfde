@@ -27,7 +27,7 @@ ykfde_challenge_response() {
     echo " > Waiting $_yubikey_timeout_str for YubiKey..."
 
     while [ -z "$_yubikey_detected" ]; do
-        _endtime=$(date +%s) 
+        _endtime=$(date +%s)
         _usedtime=$(( _endtime - _starttime ))
         [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
         _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"; _rc=$?;
@@ -56,11 +56,11 @@ ykfde_challenge_response() {
     [ "$DBG" ] && echo "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     if [ -z "$_passphrase" ]; then
-      printf "\\n   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
+      printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
       _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     fi
     if [ -z "$_passphrase" ]; then
-      printf "\\n   Yubikey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
+      printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
       _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
     fi
     [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
