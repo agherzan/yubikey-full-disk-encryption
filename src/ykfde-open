@@ -64,7 +64,7 @@ echo "   Remember to touch the device if necessary."
 _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    echo "   Yubikey did not provide a response - Initializing second attempt, touch the device if necessary."
+    echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
     _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
 fi
 
