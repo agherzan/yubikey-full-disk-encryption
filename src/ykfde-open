@@ -3,7 +3,9 @@
 set -e
 . /etc/ykfde.conf
 
-while getopts ":d:n:hvp" opt; do
+mount=0
+
+while getopts ":d:n:hvpm" opt; do
   case $opt in
 	d)
 		YKFDE_LUKS_DEV="$OPTARG"
@@ -19,12 +21,15 @@ while getopts ":d:n:hvp" opt; do
 	p)	YKFDE_PRINT_ONLY=1
 		echo "INFO: Showing complied cleartext passphrase without unlocking"
 		;;
+	m)	mount=1
+		;;
 	h)
 		echo 
 		echo " -d <partition>: select an existing partition"
 		echo " -n <name>     : set the new container name"
 		echo " -v            : show input/output in cleartext"
 		echo " -p            : show cleartext passphrase without unlocking"
+		echo " -m            : mount unlocked device (non root user only)"
 		echo
 		exit 1
 		;;
@@ -86,12 +91,19 @@ if [ "$(id -u)" -eq 0 ]; then
   printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1;
 else
   expect <(cat <<EXPECTSCRIPT
-    set timeout -1
-    spawn udisksctl unlock -b "$YKFDE_LUKS_DEV"
-    match_max 100000
-    expect -exact "Passphrase: "
-    send -- "${_passphrase}\\r"
-    expect eof
+	set timeout -1
+	log_user 0
+	spawn udisksctl unlock -b "$YKFDE_LUKS_DEV"
+	match_max 100000
+	expect -exact "Passphrase: "
+	send -- "${_passphrase}\\r"
+	expect -re "Unlocked .* as (.*).\r\n" {
+		set unlocked \$expect_out(1,string)
+		if ($mount) {
+			spawn udisksctl mount -b \$unlocked
+			expect eof
+		}
+	}
 EXPECTSCRIPT
 )
 
