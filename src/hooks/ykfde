@@ -100,7 +100,7 @@ ykfde_do_it() {
         _tmp="$(printf %s "$_passphrase"| cryptsetup luksResume "${cryptname}" 2>&1;)";
     else
         [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
-        _tmp="$(printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1)";
+        _tmp="$(printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)";
     fi
     _rc=$?;
 
@@ -120,13 +120,36 @@ ykfde_do_it() {
 
 run_hook() {
     local _tmp=""
+    local cryptargs cryptopt cryptoptions
 
     [ "$DBG" ] && echo "$0:"
 
     [ "$DBG" ] && echo " > Reading YKFDE configuration file."
     . "$YKFDE_CONFIG_FILE" || { ykfde_err 001 "Failed to read the YKFDE configuration file '$YKFDE_CONFIG_FILE'"; return 1; }
 
-    [ -z "$YKFDE_DISK_UUID" ] || [ -z "$YKFDE_LUKS_NAME" ] && { ykfde_err 002 "'$YKFDE_CONFIG_FILE' Please provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME."; return 1; }
+    # no settings in config, try to pull it from kernel cmdline (analog to encrypt hook)
+    if [ -z "$YKFDE_DISK_UUID" -o -z "$YKFDE_LUKS_NAME" ] ; then
+        if [ -n "${cryptdevice}" ] ; then
+            IFS=: read YKFDE_LUKS_DEV YKFDE_LUKS_NAME cryptoptions <<EOF
+$cryptdevice
+EOF
+            for cryptopt in ${cryptoptions//,/ }; do
+                case ${cryptopt} in
+                    allow-discards)
+                        cryptargs="${cryptargs} --allow-discards"
+                        ;;
+                    *)
+                        ykfde_err 001 "Encryption option '${cryptopt}' not known, ignoring." 
+                        ;;
+                esac
+            done
+            YKFDE_LUKS_OPTIONS=$cryptargs
+            YKFDE_DISK_UUID=${YKFDE_LUKS_DEV##*/}
+        else
+            ykfde_err 002 "'$YKFDE_CONFIG_FILE' Please provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME or set cryptdevice kernel parameter."
+            return 1
+        fi
+    fi
 
     # set default values:
     [ -z "$YKFDE_LUKS_DEV" ] && YKFDE_LUKS_DEV="/dev/disk/by-uuid/$YKFDE_DISK_UUID"
@@ -140,9 +163,8 @@ run_hook() {
     _tmp="$(modprobe -a -q dm-crypt >/dev/null 2>&1)"
 
     local trial_nr=1;
-    local what="$YKFDE_DISK_UUID"; [ -n "$YKFDE_LUKS_NAME" ] && s=" $YKFDE_LUKS_NAME";
     while [ $trial_nr -le $YKFDE_CRYPTSETUP_TRIALS ]; do
-      printf '%s\n' "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $what"
+      printf '%s\n' "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $YKFDE_LUKS_DEV"
       ykfde_do_it && return 0;
       trial_nr=$(( trial_nr + 1 ));
     done
