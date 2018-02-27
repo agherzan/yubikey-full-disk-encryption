@@ -103,7 +103,8 @@ sudo make install
 ```
 or use makepkg on existing PKGBUILD and install it through pacman: https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/PKGBUILD
 
-Edit the /etc/ykfde.conf file.
+Edit the /etc/ykfde.conf file. Alternatively to setting YKFDE_DISK_UUID and YKFDE_LUKS_NAME, you can use ``cryptdevice`` kernel parameter. The sytanx is compatible to Arch's ``encrypt`` hook.
+See https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption#Configuring_the_kernel_parameters for a detailed description.
 
 Add the `ykfde` HOOK at the end of the definition of `HOOKS` in /etc/mkinitcpio.conf.
 
