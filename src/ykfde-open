@@ -92,12 +92,11 @@ if [ "$(id -u)" -eq 0 ]; then
 else
   expect <(cat <<EXPECTSCRIPT
 	set timeout -1
-	log_user 0
 	spawn udisksctl unlock -b "$YKFDE_LUKS_DEV"
 	match_max 100000
 	expect -exact "Passphrase: "
 	send -- "${_passphrase}\\r"
-	expect -re "Unlocked .* as (.*).\r\n" {
+	expect -re "Unlocked .* as (.*).\\r\\n" {
 		set unlocked \$expect_out(1,string)
 		if ($mount) {
 			spawn udisksctl mount -b \$unlocked

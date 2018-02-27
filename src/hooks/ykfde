@@ -128,12 +128,12 @@ run_hook() {
     . "$YKFDE_CONFIG_FILE" || { ykfde_err 001 "Failed to read the YKFDE configuration file '$YKFDE_CONFIG_FILE'"; return 1; }
 
     # no settings in config, try to pull it from kernel cmdline (analog to encrypt hook)
-    if [ -z "$YKFDE_DISK_UUID" -o -z "$YKFDE_LUKS_NAME" ] ; then
+    if [ -z "$YKFDE_DISK_UUID" ] || [ -z "$YKFDE_LUKS_NAME" ] ; then
         if [ -n "${cryptdevice}" ] ; then
-            IFS=: read YKFDE_LUKS_DEV YKFDE_LUKS_NAME cryptoptions <<EOF
+            IFS=: read -r YKFDE_LUKS_DEV YKFDE_LUKS_NAME cryptoptions <<EOF
 $cryptdevice
 EOF
-            for cryptopt in ${cryptoptions//,/ }; do
+            for cryptopt in $(echo $cryptoptions | tr , ' '); do
                 case ${cryptopt} in
                     allow-discards)
                         cryptargs="${cryptargs} --allow-discards"
