@@ -144,7 +144,7 @@ EOF
                 esac
             done
             YKFDE_LUKS_OPTIONS=$cryptargs
-            YKFDE_DISK_UUID=${YKFDE_LUKS_DEV##*/}
+            YKFDE_LUKS_DEV=$(resolve_device "${YKFDE_LUKS_DEV}")
         else
             ykfde_err 002 "'$YKFDE_CONFIG_FILE' Please provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME or set cryptdevice kernel parameter."
             return 1
