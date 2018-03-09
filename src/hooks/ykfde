@@ -7,8 +7,8 @@ DEFAULT_CHALLENGE_YUBIKEY_INSERT_TIMEOUT=30;   # default value for YKFDE_CHALLEN
 
 
 ykfde_err() { local rc="$?"; local code="$1"; local msg="$2";
-  [ -n "$msg" ] && msg="\\nERROR $code [rc=$rc]: $msg\\n" || msg="\\nERROR $code [rc=$rc]";
-  printf %s "$msg"; #exit 1;
+  [ -n "$msg" ] && msg="ERROR $code [rc=$rc]: $msg" || msg="ERROR $code [rc=$rc]";
+  printf '\n%s\n\n' "$msg"; #exit 1;
 }
 
 ykfde_challenge_response() {
