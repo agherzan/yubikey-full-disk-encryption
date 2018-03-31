@@ -16,29 +16,29 @@ CRYPTNAME="$(sed -n 's/.*cryptdevice=[^: ]*:\([^: ]*\).*$/\1/p' /proc/cmdline)"
 # run_dir DIR ARGS...
 # Run all executable scripts in directory DIR with arguments ARGS
 run_dir() {
-    local dir=$1
-    shift
-    find "${dir}" -type f -executable -exec "{}" "$@" ";"
+  local dir=$1
+  shift
+  find "${dir}" -type f -executable -exec "{}" "$@" ";"
 }
 
 # Restore chroot
 umount_initramfs() {
-    local p
-    for p in ${BIND_PATHS}; do
-        ! mountpoint -q "${INITRAMFS_DIR}${p}" || umount "${INITRAMFS_DIR}${p}"
-    done
+  local p
+  for p in ${BIND_PATHS}; do
+    ! mountpoint -q "${INITRAMFS_DIR}${p}" || umount "${INITRAMFS_DIR}${p}"
+  done
 }
 
 cryptdevice_mount_options() {
-    local mt
-    mt="$(grep "^/dev/mapper/${1} " /proc/mounts | cut -d ' ' -f 3,4 | head -n 1)"
-    local fs
-    fs="$(cut -d ' ' -f 1 <<< "${mt}")"
-    local opt
-    opt="$(cut -d ' ' -f 2 <<< "${mt}")"
-    if [[ "${fs}" == "ext4" || "${fs}" == "btrfs" ]]; then
-        echo "${opt}"
-    fi
+  local mt
+  mt="$(grep "^/dev/mapper/${1} " /proc/mounts | cut -d ' ' -f 3,4 | head -n 1)"
+  local fs
+  fs="$(cut -d ' ' -f 1 <<<"${mt}")"
+  local opt
+  opt="$(cut -d ' ' -f 2 <<<"${mt}")"
+  if [[ "${fs}" == "ext4" || "${fs}" == "btrfs" ]]; then
+    echo "${opt}"
+  fi
 }
 
 ################################################################################
@@ -49,7 +49,7 @@ cryptdevice_mount_options() {
 # Prepare chroot
 trap umount_initramfs EXIT
 for p in ${BIND_PATHS}; do
-    mount -o bind "${p}" "${INITRAMFS_DIR}${p}"
+  mount -o bind "${p}" "${INITRAMFS_DIR}${p}"
 done
 
 # Run pre-suspend scripts
@@ -72,11 +72,11 @@ systemctl stop systemd-journald.service
 # `barrier=0` if this is true of the crypt fs.
 MOUNT_OPTS="$(cryptdevice_mount_options "$CRYPTNAME")"
 if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == *barrier=0* ]]; then
-    REMOUNT=1
-    mount -o remount,"$MOUNT_OPTS",barrier=0 /
+  REMOUNT=1
+  mount -o remount,"$MOUNT_OPTS",barrier=0 /
 fi
 
-# Synchronize filesystems before luksSuspend   
+# Synchronize filesystems before luksSuspend
 sync
 
 # Hand over execution to script inside initramfs
@@ -85,7 +85,7 @@ chroot . /ykfde-suspend "$CRYPTNAME"
 
 # Restore original mount options if necessary
 if ((REMOUNT)); then
-    mount -o remount,"$MOUNT_OPTS",barrier=1 /
+  mount -o remount,"$MOUNT_OPTS",barrier=1 /
 fi
 
 systemctl start systemd-journald.socket

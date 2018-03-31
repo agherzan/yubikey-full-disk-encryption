@@ -3,92 +3,94 @@
 set -e
 . /etc/ykfde.conf
 
-mount=0
-
 while getopts ":d:n:hvpm" opt; do
   case $opt in
-	d)
-		YKFDE_LUKS_DEV="$OPTARG"
-		printf '%s\n' "INFO: Setting disk to \"$OPTARG\"."
-		;;
-	n)
-		YKFDE_LUKS_NAME="$OPTARG"
-		printf '%s\n' "INFO: Setting name to \"$OPTARG\"."
-		;;
-	v)	DBG=1
-		echo "INFO: Debugging enabled"
-		;;
-	p)	YKFDE_PRINT_ONLY=1
-		echo "INFO: Showing complied cleartext passphrase without unlocking"
-		;;
-	m)	mount=1
-		;;
-	h)
-		echo 
-		echo " -d <partition>: select an existing partition"
-		echo " -n <name>     : set the new container name"
-		echo " -v            : show input/output in cleartext"
-		echo " -p            : show cleartext passphrase without unlocking"
-		echo " -m            : mount unlocked device (non root user only)"
-		echo
-		exit 1
-		;;
-	\?)
-		printf '%s\n' "Invalid option: \"-$OPTARG\"" >&2
-		;;
+    d)
+      YKFDE_LUKS_DEV="$OPTARG"
+      printf '%s\n' "INFO: Setting disk to \"$OPTARG\"."
+      ;;
+    n)
+      YKFDE_LUKS_NAME="$OPTARG"
+      printf '%s\n' "INFO: Setting name to \"$OPTARG\"."
+      ;;
+    v)
+      DBG=1
+      echo "INFO: Debugging enabled"
+      ;;
+    p)
+      YKFDE_PRINT_ONLY=1
+      echo "INFO: Showing complied cleartext passphrase without unlocking"
+      ;;
+    m)
+      MOUNT=1
+      echo "INFO: Mounting device"
+      ;;
+    h)
+      echo
+      echo " -d <partition>: select an existing partition"
+      echo " -n <name>     : set the new container name"
+      echo " -v            : show input/output in cleartext"
+      echo " -p            : show cleartext passphrase without unlocking"
+      echo " -m            : mount unlocked device (non root user only)"
+      echo
+      exit 1
+      ;;
+    \?)
+      printf '%s\n' "Invalid option: \"-$OPTARG\"" >&2
+      ;;
   esac
 done
 
-if [ -z "$YKFDE_PRINT_ONLY" ] ; then
-	if [ -z "$YKFDE_LUKS_DEV" ]; then
-		echo "Please select an existing partition using -d option, see ykfde-open -h for help."
-		exit 1
-	fi
+if [ -z "$YKFDE_PRINT_ONLY" ]; then
+  if [ -z "$YKFDE_LUKS_DEV" ]; then
+    echo "Please select an existing partition using -d option, see ykfde-open -h for help."
+    exit 1
+  fi
 
-printf '%s\n' "This script will try to open the \"$YKFDE_LUKS_NAME\" LUKS container on drive \"$YKFDE_LUKS_DEV\" . If this is not what you intended, please abort."
+  printf '%s\n' "This script will try to open the \"$YKFDE_LUKS_NAME\" LUKS container on drive \"$YKFDE_LUKS_DEV\" . If this is not what you intended, please abort."
 
 fi
 
-
 if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-    echo " > Please provide the challenge password."
-    while [ -z "$_pw" ]; do
-    printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
+  echo " > Please provide the challenge password."
+  while [ -z "$_pw" ]; do
+    printf "   Enter password: "
+    if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
     _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
-    done
-    [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
-    YKFDE_CHALLENGE="$_pw"
+  done
+  [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
+  YKFDE_CHALLENGE="$_pw"
 fi
 
 [ "$DBG" ] && printf %s "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
-_tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
+_tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"
 [ "$DBG" ] && printf '%s\n' "$_tmp"
 
 echo "   Remember to touch the device if necessary."
 [ "$DBG" ] && printf '%s\n' "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
-_passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+_passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-    _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+  echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
+  _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
 fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
 if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-    _passphrase="$_pw$_passphrase"
+  _passphrase="$_pw$_passphrase"
 fi
 
-if [ -n "$YKFDE_PRINT_ONLY" ] ; then
-	printf '%s\n' " > Passphrase: $_passphrase"
-	exit 0
+if [ -n "$YKFDE_PRINT_ONLY" ]; then
+  printf '%s\n' " > Passphrase: $_passphrase"
+  exit 0
 fi
 
 [ "$DBG" ] && printf '%s\n' " > Passing '$_passphrase' to cryptsetup!"
 [ "$DBG" ] && printf '%s\n' " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
 
 if [ "$(id -u)" -eq 0 ]; then
-  printf %s "$_passphrase"| cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1;
+  printf %s "$_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1
 else
   expect <(cat <<EXPECTSCRIPT
 	set timeout -1
@@ -98,7 +100,7 @@ else
 	send -- "${_passphrase}\\r"
 	expect -re "Unlocked .* as (.*).\\r\\n" {
 		set unlocked \$expect_out(1,string)
-		if ($mount) {
+		if ("$MOUNT") {
 			spawn udisksctl mount -b \$unlocked
 			expect eof
 		}

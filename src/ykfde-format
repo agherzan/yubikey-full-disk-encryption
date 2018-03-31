@@ -6,46 +6,48 @@ set -e
 printf '%s\n' "This script will run 'cryptsetup luksFormat $*'.  If this is not what you intended, please abort."
 
 if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-    echo " > Please provide the challenge password."
-    while [ -z "$_pw" ]; do
-    printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
+  echo " > Please provide the challenge password."
+  while [ -z "$_pw" ]; do
+    printf "   Enter password: "
+    if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
     printf "\\n > Please repeat the password.\\n"
-    printf "   Enter password: "; if [ "$DBG" ]; then read -r _pw2; else read -r -s _pw2; fi
+    printf "   Enter password: "
+    if [ "$DBG" ]; then read -r _pw2; else read -r -s _pw2; fi
     if [ "$_pw" != "$_pw2" ]; then
-	echo "Passwords do not match."
-	exit 1
+      echo "Passwords do not match."
+      exit 1
     fi
     _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
-    done
-    [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
-    YKFDE_CHALLENGE="$_pw"
+  done
+  [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
+  YKFDE_CHALLENGE="$_pw"
 fi
 
 [ "$DBG" ] && printf %s "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
-_tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)";
+_tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"
 [ "$DBG" ] && printf '%s\n' "$_tmp"
 
 echo "   Remember to touch the device if necessary."
 [ "$DBG" ] && printf '%s\n' "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
-_passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+_passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
 
 if [ -z "$_passphrase" ]; then
-    echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-    _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null| tr -d '\n')"
+  echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
+  _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
 fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
 if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-    _passphrase="$_pw$_passphrase"
+  _passphrase="$_pw$_passphrase"
 fi
 
 if [ -n "$_passphrase" ]; then
-    [ "$DBG" ] && printf '%s\n' " > Using '$_passphrase' with cryptsetup!"
-    printf '%s\n' "$_passphrase" | cryptsetup luksFormat "$@"
+  [ "$DBG" ] && printf '%s\n' " > Using '$_passphrase' with cryptsetup!"
+  printf '%s\n' "$_passphrase" | cryptsetup luksFormat "$@"
 else
-    echo "   Passphrase is empty. Operation aborted."
-    exit 1
+  echo "   Passphrase is empty. Operation aborted."
+  exit 1
 fi
 
 exit 0

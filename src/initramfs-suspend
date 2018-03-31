@@ -12,14 +12,15 @@ sync
 [ -z "${cryptname}" ] || cryptsetup luksSuspend "${cryptname}"
 
 # Suspend the system
-echo mem > /sys/power/state
+echo mem >/sys/power/state
 
 # Resume root device
 RESUME=1
 
 . /init_functions
-parse_cmdline < /proc/cmdline
-. /hooks/ykfde; run_hook
+parse_cmdline </proc/cmdline
+. /hooks/ykfde
+run_hook
 
 # Stop udev from initramfs, as the real daemon from rootfs will be restarted
 udevadm control --exit
