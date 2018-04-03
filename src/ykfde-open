@@ -3,6 +3,8 @@
 set -e
 . /etc/ykfde.conf
 
+MOUNT=0
+
 while getopts ":d:n:hvpm" opt; do
   case $opt in
     d)
