@@ -8,8 +8,7 @@ license=('GPL')
 depends=('yubikey-personalization' 'cryptsetup' 'udisks2' 'expect')
 makedepends=('git')
 backup=('etc/ykfde.conf')
-source=('git+https://github.com/agherzan/yubikey-full-disk-encryption.git'
-        )
+source=('git+https://github.com/agherzan/yubikey-full-disk-encryption.git')
 sha256sums=('SKIP')
 
 pkgver() {
@@ -17,11 +16,7 @@ pkgver() {
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
-prepare() {
-    cd "${pkgname}"
-}
-
 package() {
-	cd "${pkgname}"
-        make DESTDIR=${pkgdir} install
+  cd "${pkgname}"
+  make DESTDIR=${pkgdir} install
 }
