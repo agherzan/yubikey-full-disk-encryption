@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -e -u
+set -euo pipefail
+
 trap 'echo "Press ENTER to continue."; read dummy' ERR
 
 ################################################################################
@@ -16,16 +17,16 @@ CRYPTNAME="$(sed -n 's/.*cryptdevice=[^: ]*:\([^: ]*\).*$/\1/p' /proc/cmdline)"
 # run_dir DIR ARGS...
 # Run all executable scripts in directory DIR with arguments ARGS
 run_dir() {
-  local dir=$1
+  local dir="$1"
   shift
-  find "${dir}" -type f -executable -exec "{}" "$@" ";"
+  find "$dir" -type f -executable -exec "{}" "$@" ";"
 }
 
 # Restore chroot
 umount_initramfs() {
   local p
-  for p in ${BIND_PATHS}; do
-    ! mountpoint -q "${INITRAMFS_DIR}${p}" || umount "${INITRAMFS_DIR}${p}"
+  for p in $BIND_PATHS; do
+    ! mountpoint -q "$INITRAMFS_DIR$p" || umount "$INITRAMFS_DIR$p"
   done
 }
 
@@ -33,27 +34,27 @@ cryptdevice_mount_options() {
   local mt
   mt="$(grep "^/dev/mapper/${1} " /proc/mounts | cut -d ' ' -f 3,4 | head -n 1)"
   local fs
-  fs="$(cut -d ' ' -f 1 <<<"${mt}")"
+  fs="$(cut -d ' ' -f 1 <<<"$mt")"
   local opt
-  opt="$(cut -d ' ' -f 2 <<<"${mt}")"
-  if [[ "${fs}" == "ext4" || "${fs}" == "btrfs" ]]; then
-    echo "${opt}"
+  opt="$(cut -d ' ' -f 2 <<<"$mt")"
+  if [[ "$fs" == "ext4" || "$fs" == "btrfs" ]]; then
+    echo "$opt"
   fi
 }
 
 ################################################################################
 ## Main script
 
-[ -e "${INITRAMFS_DIR}/ykfde-suspend" ] || exec /usr/lib/systemd/systemd-sleep suspend
+[ -e "$INITRAMFS_DIR/ykfde-suspend" ] || exec /usr/lib/systemd/systemd-sleep suspend
 
 # Prepare chroot
 trap umount_initramfs EXIT
-for p in ${BIND_PATHS}; do
-  mount -o bind "${p}" "${INITRAMFS_DIR}${p}"
+for p in $BIND_PATHS; do
+  mount -o bind "$p" "$INITRAMFS_DIR$p"
 done
 
 # Run pre-suspend scripts
-run_dir "${SYSTEM_SLEEP_PATH}" pre suspend
+run_dir "$SYSTEM_SLEEP_PATH" pre suspend
 
 # Stop udev service and prevent it to be autostarted.
 # Otherwise, luksResume will hang waiting for udev, which is itself waiting
@@ -80,7 +81,7 @@ fi
 sync
 
 # Hand over execution to script inside initramfs
-cd "${INITRAMFS_DIR}"
+cd "$INITRAMFS_DIR"
 chroot . /ykfde-suspend "$CRYPTNAME"
 
 # Restore original mount options if necessary
@@ -99,7 +100,7 @@ systemctl start systemd-udevd-kernel.socket
 systemctl start systemd-udevd.service
 
 # Run post-suspend scripts
-run_dir "${SYSTEM_SLEEP_PATH}" post suspend
+run_dir "$SYSTEM_SLEEP_PATH" post suspend
 
 # Unlock user sessions
 loginctl unlock-sessions

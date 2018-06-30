@@ -9,7 +9,7 @@ ykfde_err() {
   local rc="$?"
   local code="$1"
   local msg="$2"
-  [ -n "$msg" ] && msg="ERROR $code [rc=$rc]: $msg" || msg="ERROR $code [rc=$rc]"
+  [ "$msg" ] && msg="ERROR $code [rc=$rc]: $msg" || msg="ERROR $code [rc=$rc]"
   printf '\n%s\n\n' "$msg" #exit 1;
 }
 
@@ -25,18 +25,18 @@ ykfde_challenge_response() {
 
   [ "$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT" -gt 0 ] && _yubikey_timeout_str="$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT seconds"
 
-  _starttime=$(date +%s)
+  _starttime="$(date +%s)"
   echo " > Waiting $_yubikey_timeout_str for YubiKey..."
 
   while [ -z "$_yubikey_detected" ]; do
-    _endtime=$(date +%s)
+    _endtime="$(date +%s)"
     _usedtime=$((_endtime - _starttime))
     [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
     _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"
     _rc=$?
     [ "$DBG" ] && echo "[$_rc] '$_tmp'"
-    [ $_rc -eq 0 ] && _yubikey_detected=1
-    if [ "$_yubikey_timeout" -eq -1 ] || [ $_usedtime -le "$_yubikey_timeout" ]; then
+    [ "$_rc" -eq 0 ] && _yubikey_detected=1
+    if [ "$_yubikey_timeout" -eq -1 ] || [ "$_usedtime" -le "$_yubikey_timeout" ]; then
       sleep 0.5
     else
       echo "    Timeout - Challenge-Response aborted."
@@ -44,13 +44,13 @@ ykfde_challenge_response() {
     fi
   done
 
-  if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+  if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
     local _pw=""
     echo " > Please provide the challenge password."
     while [ -z "$_pw" ]; do
       printf "   Enter password: "
       if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
-      _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+      _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
     done
     [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
     YKFDE_CHALLENGE="$_pw"
@@ -69,7 +69,7 @@ ykfde_challenge_response() {
   fi
   [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-  if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+  if [ "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
     _passphrase="$_pw$_passphrase"
   fi
 }
@@ -81,10 +81,10 @@ ykfde_do_it() {
   local _rc=""
 
   # if we have a challenge
-  [ -n "$YKFDE_CHALLENGE" ] && ykfde_challenge_response
+  [ "$YKFDE_CHALLENGE" ] && ykfde_challenge_response
 
   if [ -z "$_passphrase" ]; then
-    if [ -n "$YKFDE_CHALLENGE" ]; then
+    if [ "$YKFDE_CHALLENGE" ]; then
       printf " > Challenge-response failed.\\n   Falling back to manual passphrase.\\n"
       [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
     else
@@ -102,18 +102,18 @@ ykfde_do_it() {
   }
 
   [ "$DBG" ] && echo " > Passing '$_passphrase' to cryptsetup!"
-  if [ -n "$RESUME" ]; then
+  if [ "$RESUME" ]; then
     [ "$DBG" ] && echo " > Decrypting (cryptsetup luksResume \"$cryptname\"..." || echo " > Decrypting (cryptsetup luksResume)..."
-    _tmp="$(printf %s "$_passphrase" | cryptsetup luksResume "${cryptname}" 2>&1)"
+    _tmp="$(printf %s "$_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
   else
     [ "$DBG" ] && echo " > Decrypting (cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\")..." || echo " > Decrypting (cryptsetup luksOpen)..."
     _tmp="$(printf %s "$_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
   fi
   _rc=$?
 
-  if [ $_rc -eq 0 ]; then
+  if [ "$_rc" -eq 0 ]; then
     echo "   Decryption was succesful."
-    if [ -n "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" ] && [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" -gt 0 ]; then
+    if [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" ] && [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" -gt 0 ]; then
       [ "$DBG" ] && echo " > Making $YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP sleep."
       sleep "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP"
     fi
@@ -121,7 +121,7 @@ ykfde_do_it() {
     echo "   FAILED! [$_rc] $_tmp"
   fi
 
-  return $_rc
+  return "$_rc"
 }
 
 run_hook() {
@@ -138,22 +138,22 @@ run_hook() {
 
   # no settings in config, try to pull it from kernel cmdline (analog to encrypt hook)
   if [ -z "$YKFDE_DISK_UUID" ] || [ -z "$YKFDE_LUKS_NAME" ]; then
-    if [ -n "${cryptdevice}" ]; then
+    if [ "$cryptdevice" ]; then
       IFS=: read -r YKFDE_LUKS_DEV YKFDE_LUKS_NAME cryptoptions <<EOF
 $cryptdevice
 EOF
       for cryptopt in $(echo "$cryptoptions" | tr , ' '); do
-        case ${cryptopt} in
+        case "$cryptopt" in
           allow-discards)
-            cryptargs="${cryptargs} --allow-discards"
+            cryptargs="$cryptargs --allow-discards"
             ;;
           *)
-            ykfde_err 001 "Encryption option '${cryptopt}' not known, ignoring."
+            ykfde_err 001 "Encryption option '$cryptopt' not known, ignoring."
             ;;
         esac
       done
-      YKFDE_LUKS_OPTIONS=$cryptargs
-      YKFDE_LUKS_DEV=$(resolve_device "${YKFDE_LUKS_DEV}")
+      YKFDE_LUKS_OPTIONS="$cryptargs"
+      YKFDE_LUKS_DEV="$(resolve_device "$YKFDE_LUKS_DEV")"
     else
       ykfde_err 002 "'$YKFDE_CONFIG_FILE' Please provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME or set cryptdevice kernel parameter."
       return 1
@@ -166,7 +166,7 @@ EOF
   [ -z "$YKFDE_CRYPTSETUP_TRIALS" ] && YKFDE_CRYPTSETUP_TRIALS="$DEFAULT_CRYPTSETUP_TRIALS"
 
   # sanity checks:
-  [ $YKFDE_CRYPTSETUP_TRIALS -gt 0 ] || {
+  [ "$YKFDE_CRYPTSETUP_TRIALS" -gt 0 ] || {
     ykfde_err 004 "YKFDE_CRYPTSETUP_TRIALS needs to be higher than 0."
     return 1
   }
@@ -175,7 +175,7 @@ EOF
   _tmp="$(modprobe -a -q dm-crypt >/dev/null 2>&1)"
 
   local trial_nr=1
-  while [ $trial_nr -le $YKFDE_CRYPTSETUP_TRIALS ]; do
+  while [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ]; do
     printf '%s\n' "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $YKFDE_LUKS_DEV"
     ykfde_do_it && return 0
     trial_nr=$((trial_nr + 1))

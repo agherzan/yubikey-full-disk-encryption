@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-set -e
+set -eo pipefail
+
 . /etc/ykfde.conf
 
 MOUNT=0
 
 while getopts ":d:n:hvpm" opt; do
-  case $opt in
+  case "$opt" in
     d)
       YKFDE_LUKS_DEV="$OPTARG"
       printf '%s\n' "INFO: Setting disk to \"$OPTARG\"."
@@ -53,12 +54,12 @@ if [ -z "$YKFDE_PRINT_ONLY" ]; then
 
 fi
 
-if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
   echo " > Please provide the challenge password."
   while [ -z "$_pw" ]; do
     printf "   Enter password: "
     if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
-    _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+    _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
   done
   [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
   YKFDE_CHALLENGE="$_pw"
@@ -79,11 +80,11 @@ fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+if [ "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
   _passphrase="$_pw$_passphrase"
 fi
 
-if [ -n "$YKFDE_PRINT_ONLY" ]; then
+if [ "$YKFDE_PRINT_ONLY" ]; then
   printf '%s\n' " > Passphrase: $_passphrase"
   exit 0
 fi

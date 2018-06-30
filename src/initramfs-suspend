@@ -9,7 +9,7 @@ cryptname="${1}"
 sync
 
 # Suspend root device
-[ -z "${cryptname}" ] || cryptsetup luksSuspend "${cryptname}"
+[ -z "$cryptname" ] || cryptsetup luksSuspend "$cryptname"
 
 # Suspend the system
 echo mem >/sys/power/state

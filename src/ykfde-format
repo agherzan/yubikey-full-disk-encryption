@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
-set -e
+set -eo pipefail
+
 . /etc/ykfde.conf
 
 printf '%s\n' "This script will run 'cryptsetup luksFormat $*'.  If this is not what you intended, please abort."
 
-if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
   echo " > Please provide the challenge password."
   while [ -z "$_pw" ]; do
     printf "   Enter password: "
@@ -17,7 +18,7 @@ if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
       echo "Passwords do not match."
       exit 1
     fi
-    _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+    _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
   done
   [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
   YKFDE_CHALLENGE="$_pw"
@@ -38,11 +39,11 @@ fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+if [ "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
   _passphrase="$_pw$_passphrase"
 fi
 
-if [ -n "$_passphrase" ]; then
+if [ "$_passphrase" ]; then
   [ "$DBG" ] && printf '%s\n' " > Using '$_passphrase' with cryptsetup!"
   printf '%s\n' "$_passphrase" | cryptsetup luksFormat "$@"
 else

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-set -e
+set -eo pipefail
+
 . /etc/ykfde.conf
 
 while getopts ":s:d:hcv" opt; do
-  case $opt in
+  case "$opt" in
     s)
       KEY_SLOT="$OPTARG"
       printf '%s\n' "INFO: Setting LUKS key slot to \"$OPTARG\"."
@@ -51,14 +52,14 @@ if [ -z "$KEY_SLOT" ]; then
   exit 1
 fi
 
-if [ -n "$CLEAR_KEY_SLOT" ]; then
+if [ "$CLEAR_KEY_SLOT" ]; then
   printf '%s\n' "Killing LUKS slot $KEY_SLOT"
   cryptsetup luksKillSlot "$YKFDE_LUKS_DEV" "$KEY_SLOT"
 fi
 
 printf '%s\n' "This script will utilize slot \"$KEY_SLOT\" on drive \"$YKFDE_LUKS_DEV\".  If this is not what you intended, please abort."
 
-if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
   echo " > Please provide the challenge password."
   while [ -z "$_pw" ]; do
     printf "   Enter password: "
@@ -70,7 +71,7 @@ if [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
       echo "Passwords do not match."
       exit 1
     fi
-    _pw=$(printf %s "$_pw" | sha256sum | awk '{print $1}')
+    _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
   done
   [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
   YKFDE_CHALLENGE="$_pw"
@@ -91,7 +92,7 @@ fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-if [ -n "$_passphrase" ] && [ -n "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+if [ "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
   _passphrase="$_pw$_passphrase"
 fi
 
@@ -100,7 +101,7 @@ echo "If prompted for a passphrase, enter the current passphrase for the LUKS co
 printf " Enter password: "
 if [ "$DBG" ]; then read -r OLD; else read -r -s OLD; fi
 
-if [ -n "$_passphrase" ]; then
+if [ "$_passphrase" ]; then
   [ "$DBG" ] && echo " > Adding new LUKS key (cryptsetup --key-slot=\"$KEY_SLOT\" luksAddKey \"$YKFDE_LUKS_DEV\")..." || printf "\\n > Decrypting (cryptsetup luksAddKey)...\\n"
   printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="$KEY_SLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1
 else
