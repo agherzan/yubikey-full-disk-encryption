@@ -79,8 +79,6 @@ When doing manual installation you also need to install [yubikey-personalization
 
 First of all you need to [setup a configuration slot](https://wiki.archlinux.org/index.php/Yubikey#Setup_the_slot) for *YubiKey HMAC-SHA1 Challenge-Response* mode using a command similar to:
 
-In order to setup slot 2 in challenge-response mode you may run:
-
 ```
 ykpersonalize -v -2 -ochal-resp -ochal-hmac -ohmac-lt64 -oserial-api-visible -ochal-btn-trig
 ```
