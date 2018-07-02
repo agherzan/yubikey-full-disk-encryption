@@ -15,7 +15,7 @@ There is similar project targeting Debian/Ubuntu systems: [yubikey-luks](https:/
 
 The password for unlocking *LUKS* encrypted volumes can be created in two ways:
 
-###Automatic mode with stored challenge (1FA)
+### Automatic mode with stored challenge (1FA)
 
 In *Automatic mode* you create custom *challenge* with 0-64 byte length and store it in cleartext in */etc/ykfde.conf* and inside the initramfs image. 
 
@@ -28,7 +28,7 @@ Example *response* (LUKS password): `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 In this mode possession of your *YubiKey* is enough to unlock a *LUKS* encrypted volume (1FA). It allows for the easy unlocking of encrypted volumes when *YubiKey* is present without need for user action.
 
 
-###Manual mode with secret challenge (2FA)
+### Manual mode with secret challenge (2FA)
 
 In *Secret mode* you will be asked to provide a custom *challenge* every time you want to unlock your *LUKS* encrypted volume as it will never be stored anywhere on system.
 
