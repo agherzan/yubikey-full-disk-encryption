@@ -97,16 +97,18 @@ You may instead enable *HMAC-SHA1 Challenge-Response* mode using graphical inter
 
 ### Edit /etc/ykfde.conf file
 
-Open the `/etc/ykfde.conf` file and adjust it for your needs. Alternatively to setting `YKFDE_DISK_UUID` and `YKFDE_LUKS_NAME`, you can use `cryptdevice` kernel parameter. The syntax is compatible to Arch's `encrypt` hook.
-See https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption#Configuring_the_kernel_parameters for a detailed description.
+Open the [/etc/ykfde.conf](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde.conf) file and adjust it for your needs. Alternatively to setting `YKFDE_DISK_UUID` and `YKFDE_LUKS_NAME`, you can use `cryptdevice` kernel parameter. The [syntax](https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption#Configuring_the_kernel_parameters) is compatible with Arch's `encrypt` hook. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+
+```
+sudo mkinitcpio -P
+```
+
 
 ## Usage
 
 ### Enable ykfde initramfs hook
 
-Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples).
-
-[Regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). [Regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
 ```
 sudo mkinitcpio -P
@@ -118,7 +120,11 @@ Reboot and test you configuration.
 
 You can enable the `ykfde-suspend` hook which allows for automatically locking encrypted *LUKS* volumes and wiping keys from memory on suspend and unlocking them on resume by using `cryptsetup luksSuspend` and `cryptsetup luksResume` commands. **Warning: RAM storage stays unencrypted in that case.**
 
-Edit `/etc/mkinitcpio.conf` and make sure the following hooks are enabled: `udev`, `ykfde` and `shutdown`.
+Edit `/etc/mkinitcpio.conf` and make sure the following hooks are enabled: `udev`, `ykfde` and `shutdown`. [Regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+
+```
+sudo mkinitcpio -P
+```
 
 Enable related systemd service:
 
