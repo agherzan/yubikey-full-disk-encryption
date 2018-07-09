@@ -82,10 +82,10 @@ ykfde_do_it() {
   local _rc=""
 
   # if we have a challenge
-  [ "$YKFDE_CHALLENGE" ] && ykfde_challenge_response
+  [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && ykfde_challenge_response
 
   if [ -z "$_passphrase" ]; then
-    if [ "$YKFDE_CHALLENGE" ]; then
+    if [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
       printf " > Challenge-response failed.\\n   Falling back to manual passphrase.\\n"
       [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
     else
