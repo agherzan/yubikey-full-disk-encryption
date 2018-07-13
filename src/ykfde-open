@@ -95,7 +95,8 @@ fi
 if [ "$(id -u)" -eq 0 ]; then
   printf %s "$_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1
 else
-  expect <(cat <<EXPECTSCRIPT
+  expect <(
+    cat <<EXPECTSCRIPT
 	set timeout -1
 	spawn udisksctl unlock -b "$YKFDE_LUKS_DEV"
 	match_max 100000
@@ -109,7 +110,7 @@ else
 		}
 	}
 EXPECTSCRIPT
-)
+  )
 
 fi
 
