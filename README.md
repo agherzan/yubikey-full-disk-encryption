@@ -23,7 +23,7 @@ There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](ht
       * [Configuring HMAC-SHA1 Challenge-Response slot in YubiKey](#configuring-hmac-sha1-challenge-response-slot-in-yubikey)
       * [Editing /etc/ykfde.conf file](#editing-etcykfdeconf-file)
    * [Usage](#usage)
-      * [Formatting new LUKS encrypted volume using ykfde password](#formating-new-luks-encrypted-volume-using-ykfde-password)
+      * [Formatting new LUKS encrypted volume using ykfde password](#formatting-new-luks-encrypted-volume-using-ykfde-password)
       * [Enrolling ykfde password to existing LUKS encrypted volume](#enrolling-ykfde-password-to-existing-luks-encrypted-volume)
       * [Unlocking LUKS encrypted volume protected by ykfde password](#unlocking-luks-encrypted-volume-protected-by-ykfde-password)
       * [Enabling ykfde initramfs hook](#enabling-ykfde-initramfs-hook)
