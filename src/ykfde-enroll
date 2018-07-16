@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
+set -euo pipefail
 
 . /etc/ykfde.conf
 
-while getopts ":s:d:hcv" opt; do
+while getopts ":d:s:cvh" opt; do
   case "$opt" in
-    s)
-      KEY_SLOT="$OPTARG"
-      printf '%s\n' "INFO: Setting LUKS key slot to \"$OPTARG\"."
-      ;;
     d)
       YKFDE_LUKS_DEV="$OPTARG"
-      printf '%s\n' "INFO: Setting disk to \"$OPTARG\"."
+      printf '%s\n' "INFO: Setting device to \"$OPTARG\"."
+      ;;
+    s)
+      LUKS_KEYSLOT="$OPTARG"
+      printf '%s\n' "INFO: Setting LUKS keyslot to \"$OPTARG\"."
       ;;
     c)
-      CLEAR_KEY_SLOT=1
-      echo "INFO: clearing LUKS key slot"
+      CHANGE_KEYSLOT=1
+      echo "INFO: Changing existing LUKS keyslot"
       ;;
     v)
       DBG=1
@@ -24,89 +24,114 @@ while getopts ":s:d:hcv" opt; do
       ;;
     h)
       echo
-      echo " -d <partition>: set the partition"
-      echo " -s <slot>     : set the slot"
-      echo " -c            : clear the slot prior to writing"
+      echo " -d <device>   : select an existing device"
+      echo " -s <slot>     : select the LUKS keyslot"
+      echo " -c            : change an existing keyslot"
       echo " -v            : show input/output in cleartext"
       echo
       exit 1
       ;;
     \?)
       printf '%s\n' "Invalid option: \"-$OPTARG\"" >&2
+      echo
+      echo " -d <device>   : select an existing device"
+      echo " -s <slot>     : select the LUKS keyslot"
+      echo " -c            : change an existing keyslot"
+      echo " -v            : show input/output in cleartext"
+      echo
+      exit 1
       ;;
   esac
 done
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "Root required for this operation." 1>&2
+_tmp="$(ykinfo -q -"${YKFDE_CHALLENGE_SLOT:-2}")"
+[ "${DBG:-}" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"${YKFDE_CHALLENGE_SLOT:-2}\"): \"${_tmp:-}\""
+
+if [ "${_tmp:-}" != 1 ]; then
+  printf '%s\n' "ERROR: Choosen YubiKey slot \"${YKFDE_CHALLENGE_SLOT:-2}\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
-if [ -z "$YKFDE_LUKS_DEV" ]; then
-  echo "Please select an existing partition using -d option, see ykfde-enroll -h for help."
+if [ -z "${YKFDE_LUKS_DEV:-}" ]; then
+  echo "ERROR: Device not selected. Please select an existing device using '-d' option, see 'ykfde-enroll -h' for help."
   exit 1
 fi
 
-if [ -z "$KEY_SLOT" ]; then
-  echo "Please select LUKS key slot using -s option, see ykfde-enroll -h for help."
+if [ ! -e "${YKFDE_LUKS_DEV:-}" ]; then
+  printf '%s\n' "ERROR: Selected device \"${YKFDE_LUKS_DEV:-}\" doesn't exist. Please select an existing device."
   exit 1
 fi
 
-if [ "$CLEAR_KEY_SLOT" ]; then
-  printf '%s\n' "Killing LUKS slot $KEY_SLOT"
-  cryptsetup luksKillSlot "$YKFDE_LUKS_DEV" "$KEY_SLOT"
+if [ ! -r "${YKFDE_LUKS_DEV:-}" ] || [ ! -w "${YKFDE_LUKS_DEV:-}" ]; then
+  printf '%s\n' "ERROR: Selected device \"${YKFDE_LUKS_DEV:-}\" isn't accesible for current user '$(whoami)'. Please execute this script as 'root'."
+  exit 1
 fi
 
-printf '%s\n' "This script will utilize slot \"$KEY_SLOT\" on drive \"$YKFDE_LUKS_DEV\".  If this is not what you intended, please abort."
+if ! cryptsetup isLuks "${YKFDE_LUKS_DEV:-}"; then
+  printf '%s\n' "ERROR: Selected device \"${YKFDE_LUKS_DEV:-}\" isn't a LUKS encrypted volume. Please select a valid device."
+  exit 1
+fi
 
-if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-  echo " > Please provide the challenge password."
-  while [ -z "$_pw" ]; do
-    printf "   Enter password: "
-    if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
-    printf "\\n > Please repeat the password.\\n"
-    printf "   Enter password: "
-    if [ "$DBG" ]; then read -r _pw2; else read -r -s _pw2; fi
+if [ -z "${LUKS_KEYSLOT:-}" ]; then
+  echo "ERROR: LUKS keyslot not selected. Please select LUKS keyslot using '-s' option, see 'ykfde-enroll -h' for help."
+  exit 1
+fi
+
+printf '%s\n' "WARNING: This script will utilize LUKS keyslot \"${LUKS_KEYSLOT:-}\" on device \"${YKFDE_LUKS_DEV:-}\".  If this is not what you intended, please abort."
+
+if [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then
+  echo " > Please provide the challenge."
+  while [ -z "${_pw:-}" ]; do
+    printf "   Enter challenge: "
+    if [ "${DBG:-}" ]; then read -r _pw; else read -r -s _pw; fi
+    printf "\\n > Please repeat the challenge.\\n"
+    printf "   Enter challenge: "
+    if [ "${DBG:-}" ]; then read -r _pw2; else read -r -s _pw2; fi
     if [ "$_pw" != "$_pw2" ]; then
-      echo "Passwords do not match."
+      echo "ERROR: Challenges do not match."
       exit 1
     fi
     _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
   done
-  [ "$DBG" ] || echo # if /NOT/ DBG, we need to output \n here.
+  [ "${DBG:-}" ] || echo # if /NOT/ DBG, we need to output \n here.
   YKFDE_CHALLENGE="$_pw"
 fi
 
-[ "$DBG" ] && printf %s "   ykinfo -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\": "
-_tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"
-[ "$DBG" ] && printf '%s\n' "$_tmp"
-
 echo "   Remember to touch the device if necessary."
-[ "$DBG" ] && printf '%s\n' "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
-_passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
-
+[ "${DBG:-}" ] && printf '%s\n' "   Running: 'ykchalresp -${YKFDE_CHALLENGE_SLOT:-2} \"$YKFDE_CHALLENGE\"'..."
+# we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
+set +e
+_passphrase="$(ykchalresp -"${YKFDE_CHALLENGE_SLOT:-2}" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+set -e
 if [ -z "$_passphrase" ]; then
   echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-  _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+  _passphrase="$(ykchalresp -"${YKFDE_CHALLENGE_SLOT:-2}" "$YKFDE_CHALLENGE" | tr -d '\n')"
 fi
 
-[ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
+[ "${DBG:-}" ] && printf '%s\n' "   Received response: '$_passphrase'"
 
-if [ "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+if [ "$_passphrase" ] && [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then
   _passphrase="$_pw$_passphrase"
 fi
 
-[ "$DBG" ] && printf '%s\n' " > Using '$_passphrase' with cryptsetup!"
-echo "If prompted for a passphrase, enter the current passphrase for the LUKS container. This is the old LUKS passphrase."
-printf " Enter password: "
-if [ "$DBG" ]; then read -r OLD; else read -r -s OLD; fi
+echo "Please provide the old LUKS passphrase for the existing keyslot."
+printf " Enter passphrase: "
+if [ "${DBG:-}" ]; then read -r OLD; else read -r -s OLD; fi
 
 if [ "$_passphrase" ]; then
-  [ "$DBG" ] && echo " > Adding new LUKS key (cryptsetup --key-slot=\"$KEY_SLOT\" luksAddKey \"$YKFDE_LUKS_DEV\")..." || printf "\\n > Decrypting (cryptsetup luksAddKey)...\\n"
-  printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="$KEY_SLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1
+  [ "${DBG:-}" ] && printf '%s\n' " > Passing '$_passphrase' to 'cryptsetup'"
+  if [ "${CHANGE_KEYSLOT:-}" ]; then
+    [ "${DBG:-}" ] && printf '%s\n' " > Changing LUKS passphrase with 'cryptsetup --key-slot=\"${LUKS_KEYSLOT:-}\" luksChangeKey \"$YKFDE_LUKS_DEV\"'..." || echo " > Changing LUKS passphrase with 'cryptsetup'..."
+    printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="${LUKS_KEYSLOT:-}" luksChangeKey "${YKFDE_LUKS_DEV:-}" 2>&1
+  else
+    [ "${DBG:-}" ] && printf '%s\n' " > Adding new LUKS passphrase with 'cryptsetup --key-slot=\"${LUKS_KEYSLOT:-}\" luksAddKey \"$YKFDE_LUKS_DEV\"'..." || echo " > Adding new LUKS passphrase with 'cryptsetup'..."
+    printf '%s\n' "$OLD" "$_passphrase" "$_passphrase" | cryptsetup --key-slot="${LUKS_KEYSLOT:-}" luksAddKey "${YKFDE_LUKS_DEV:-}" 2>&1
+  fi
 else
-  echo "   Passphrase is empty. Operation aborted."
+  echo "ERROR: LUKS passphrase is empty. Operation aborted."
   exit 1
 fi
+
+echo "   New LUKS passphrase succesfully added"
 
 exit 0

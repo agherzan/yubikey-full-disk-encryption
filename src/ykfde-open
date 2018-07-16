@@ -4,7 +4,7 @@ set -euo pipefail
 
 . /etc/ykfde.conf
 
-while getopts ":d:n:hvpm" opt; do
+while getopts ":d:n:pmvh" opt; do
   case "$opt" in
     d)
       YKFDE_LUKS_DEV="$OPTARG"
@@ -14,10 +14,6 @@ while getopts ":d:n:hvpm" opt; do
       YKFDE_LUKS_NAME="$OPTARG"
       printf '%s\n' "INFO: Setting name to \"$OPTARG\"."
       ;;
-    v)
-      DBG=1
-      echo "INFO: Debugging enabled"
-      ;;
     p)
       YKFDE_PRINT_ONLY=1
       echo "INFO: Showing complied cleartext passphrase without unlocking"
@@ -26,13 +22,17 @@ while getopts ":d:n:hvpm" opt; do
       MOUNT=1
       echo "INFO: Mounting device"
       ;;
+    v)
+      DBG=1
+      echo "INFO: Debugging enabled"
+      ;;
     h)
       echo
       echo " -d <device>   : select an existing device"
       echo " -n <name>     : set the new container name"
-      echo " -v            : show input/output in cleartext"
       echo " -p            : show cleartext passphrase without unlocking"
       echo " -m            : mount unlocked device (non root user only)"
+      echo " -v            : show input/output in cleartext"
       echo
       exit 1
       ;;
@@ -41,9 +41,9 @@ while getopts ":d:n:hvpm" opt; do
       echo
       echo " -d <device>   : select an existing device"
       echo " -n <name>     : set the new container name"
-      echo " -v            : show input/output in cleartext"
       echo " -p            : show cleartext passphrase without unlocking"
       echo " -m            : mount unlocked device (non root user only)"
+      echo " -v            : show input/output in cleartext"
       echo
       exit 1
       ;;
@@ -60,7 +60,7 @@ fi
 
 if [ -z "${YKFDE_PRINT_ONLY:-}" ]; then
   if [ -z "${YKFDE_LUKS_DEV:-}" ]; then
-    echo "ERROR: Device not selected. Please select an existing device using '-d' option, see 'ykfde-open -h for help."
+    echo "ERROR: Device not selected. Please select an existing device using '-d' option, see 'ykfde-open -h' for help."
     exit 1
   fi
   if [ ! -e "${YKFDE_LUKS_DEV:-}" ]; then
