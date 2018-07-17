@@ -29,7 +29,7 @@ while getopts ":d:n:pmvh" opt; do
     h)
       echo
       echo " -d <device>   : select an existing device"
-      echo " -n <name>     : set the new container name"
+      echo " -n <name>     : set the new encrypted volume name"
       echo " -p            : show cleartext passphrase without unlocking"
       echo " -m            : mount unlocked device (non root user only)"
       echo " -v            : show input/output in cleartext"
@@ -40,7 +40,7 @@ while getopts ":d:n:pmvh" opt; do
       printf '%s\n' "Error: Invalid option: \"-$OPTARG\"" >&2
       echo
       echo " -d <device>   : select an existing device"
-      echo " -n <name>     : set the new container name"
+      echo " -n <name>     : set the new encrypted volume name"
       echo " -p            : show cleartext passphrase without unlocking"
       echo " -m            : mount unlocked device (non root user only)"
       echo " -v            : show input/output in cleartext"
@@ -73,11 +73,11 @@ if [ -z "${YKFDE_PRINT_ONLY:-}" ]; then
       exit 1
     fi
     if [ -z "${YKFDE_LUKS_NAME:-}" ]; then
-      printf '%s\n' "ERROR: Please set the new container name using '-n' option, see 'ykfde-open -h' for help."
+      printf '%s\n' "ERROR: Please set the new encrypted volume name using '-n' option, see 'ykfde-open -h' for help."
       exit 1
     fi
   fi
-  printf '%s\n' "WARNING: This script will try to open the \"${YKFDE_LUKS_NAME:-}\" LUKS container on drive \"${YKFDE_LUKS_DEV:-}\" . If this is not what you intended, please abort."
+  printf '%s\n' "WARNING: This script will try to open the \"${YKFDE_LUKS_NAME:-}\" LUKS encrypted volume on drive \"${YKFDE_LUKS_DEV:-}\" . If this is not what you intended, please abort."
 fi
 
 if [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then

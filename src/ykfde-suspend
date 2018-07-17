@@ -17,7 +17,8 @@ CRYPTNAME="$(sed -n 's/.*cryptdevice=[^: ]*:\([^: ]*\).*$/\1/p' /proc/cmdline)"
 # run_dir DIR ARGS...
 # Run all executable scripts in directory DIR with arguments ARGS
 run_dir() {
-  local dir="$1"
+  local dir
+  dir="$1"
   shift
   find "$dir" -type f -executable -exec "{}" "$@" ";"
 }

@@ -1,6 +1,6 @@
 # YubiKey Full Disk Encryption
 
-This project leverages a [YubiKey](https://wiki.archlinux.org/index.php/Yubikey) [HMAC-SHA1 Challenge-Response](https://wiki.archlinux.org/index.php/Yubikey#Challenge-Response) mode for creating strong [LUKS](https://gitlab.com/cryptsetup/cryptsetup) encrypted volume passwords. It can be used in intramfs stage during boot process as well as on running system.
+This project leverages a [YubiKey](https://wiki.archlinux.org/index.php/Yubikey) [HMAC-SHA1 Challenge-Response](https://wiki.archlinux.org/index.php/Yubikey#Challenge-Response) mode for creating strong [LUKS](https://gitlab.com/cryptsetup/cryptsetup) encrypted volume passphrases. It can be used in intramfs stage during boot process as well as on running system.
 
 Be aware that this was only tested and intended for:
 
@@ -23,26 +23,26 @@ There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](ht
       * [Configuring HMAC-SHA1 Challenge-Response slot in YubiKey](#configuring-hmac-sha1-challenge-response-slot-in-yubikey)
       * [Editing /etc/ykfde.conf file](#editing-etcykfdeconf-file)
    * [Usage](#usage)
-      * [Formatting new LUKS encrypted volume using ykfde password](#formatting-new-luks-encrypted-volume-using-ykfde-password)
-      * [Enrolling ykfde password to existing LUKS encrypted volume](#enrolling-ykfde-password-to-existing-luks-encrypted-volume)
-      * [Unlocking LUKS encrypted volume protected by ykfde password](#unlocking-luks-encrypted-volume-protected-by-ykfde-password)
+      * [Formatting new LUKS encrypted volume using ykfde passphrase](#formatting-new-luks-encrypted-volume-using-ykfde-passphrase)
+      * [Enrolling ykfde passphrase to existing LUKS encrypted volume](#enrolling-ykfde-passphrase-to-existing-luks-encrypted-volume)
+      * [Unlocking LUKS encrypted volume protected by ykfde passphrase](#unlocking-luks-encrypted-volume-protected-by-ykfde-passphrase)
       * [Enabling ykfde initramfs hook](#enabling-ykfde-initramfs-hook)
       * [Enabling ykfde suspend hook](#enabling-ykfde-suspend-hook)
    * [License](#license)
 
 # Design
 
-The password for unlocking *LUKS* encrypted volumes can be created in two ways:
+The passphrase for unlocking *LUKS* encrypted volumes can be created in two ways:
 
 ## Automatic mode with stored challenge (1FA)
 
-In *Automatic mode* you create custom *challenge* with 0-64 byte length and store it in cleartext in */etc/ykfde.conf* and inside the initramfs image. 
+In *Automatic mode* you create custom *challenge* with 0-64 byte length and store it in cleartext in */etc/ykfde.conf* and inside the initramfs image.
 
 Example *challenge*:`123456abcdef`
 
-The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided challenge and secret key stored inside token. It will be used as your *LUKS* encrypted volume password.
+The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided challenge and secret key stored inside token. It will be used as your *LUKS* encrypted volume passphrase.
 
-Example *response* (LUKS password): `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
+Example *response* (LUKS passphrase): `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
 In this mode possession of your *YubiKey* is enough to unlock a *LUKS* encrypted volume (1FA). It allows for the easy unlocking of encrypted volumes when *YubiKey* is present without need for user action.
 
@@ -55,7 +55,7 @@ Example *challenge*: `123456abcdef`
 
 It will be hashed using the *SHA256* algorithm to achieve the maximum byte length (64) for any given *challenge*. The hash will be used as the final *challenge* provided for *YubiKey*.
 
-Hashing function: 
+Hashing function:
 
 ```
 printf 123456abcdef | sha256sum | awk '{print $1}'
@@ -63,13 +63,13 @@ printf 123456abcdef | sha256sum | awk '{print $1}'
 
 Example hashed *challenge*: `8fa0acf6233b92d2d48a30a315cd213748d48f28eaa63d7590509392316b3016`
 
- The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided *challenge* and secret key stored inside token. It will be concatenated with the *challenge* and used as your *LUKS* encrypted volume password for a total length of 104 (64+40) bytes.
+ The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided *challenge* and secret key stored inside token. It will be concatenated with the *challenge* and used as your *LUKS* encrypted volume passphrase for a total length of 104 (64+40) bytes.
 
 Example response: `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
-Example LUKS password: `8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
+Example LUKS passphrase: `8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
-This strong password cannot be broken by brute force. To recreate it one would need both your password (something you know) and your *YubiKey* (something you have) which means it works like 2FA.
+This strong passphrase cannot be broken by brute force. To recreate it one would need both your passphrase (something you know) and your *YubiKey* (something you have) which means it works like 2FA.
 
 Keep in mind that the above doesn't protect you from physical tampering like *evil maid attack* and from *malware* running after you unlock and boot your system. Use security tools designed to prevent those attacks.
 
@@ -125,7 +125,7 @@ sudo mkinitcpio -P
 
 # Usage
 
-## Formatting new LUKS encrypted volume using ykfde password
+## Formatting new LUKS encrypted volume using ykfde passphrase
 
 For formatting new *LUKS* encrypted volume, you can use [ykfde-format](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-format) script which is wrapper over `cryptsetup luksFormat` command, see `ykfde-format -h` for help:
 
@@ -133,15 +133,15 @@ For formatting new *LUKS* encrypted volume, you can use [ykfde-format](https://g
 ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha256 --iter-time 5000 /dev/<device>
 ```
 
-## Enrolling ykfde password to existing LUKS encrypted volume
+## Enrolling ykfde passphrase to existing LUKS encrypted volume
 
-For enrolling new ykfde password to existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
+For enrolling new ykfde passphrase to existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
 
 ```
 ykfde-enroll -d /dev/<device> -s <keyslot_number>
 ```
 
-## Unlocking LUKS encrypted volume protected by ykfde password
+## Unlocking LUKS encrypted volume protected by ykfde passphrase
 
 For unlocking *LUKS* encrypted volume on a running system, you can use [ykfde-open](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-open) script, see `ykfde-open -h` for help.
 
