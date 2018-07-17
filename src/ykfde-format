@@ -28,7 +28,8 @@ if [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then
     fi
     _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
   done
-  [ "${DBG:-}" ] || echo # if /NOT/ DBG, we need to output \n here.
+  # if /NOT/ DBG, we need to output \n here.
+  [ "${DBG:-}" ] || echo
   YKFDE_CHALLENGE="$_pw"
 fi
 
