@@ -15,7 +15,7 @@ sync
 echo mem >/sys/power/state
 
 # Resume root device
-RESUME=1
+ykfde_resume=1
 
 . /init_functions
 parse_cmdline </proc/cmdline

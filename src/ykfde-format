@@ -2,59 +2,81 @@
 
 set -euo pipefail
 
-. /etc/ykfde.conf
+# sanitize environment
+YKFDE_SLOT_CHECK=""
+YKFDE_CHALLENGE_SLOT="2"
+#DBG=""
+YKFDE_CHALLENGE_PASSWORD_NEEDED=""
+YKFDE_CHALLENGE=""
+YKFDE_RESPONSE=""
+YKFDE_PASSPHRASE=""
 
-_tmp="$(ykinfo -q -"${YKFDE_CHALLENGE_SLOT:-2}")"
-[ "${DBG:-}" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"${YKFDE_CHALLENGE_SLOT:-2}\"): \"${_tmp:-}\""
+if [ -r /etc/ykfde.conf ]; then
+  . /etc/ykfde.conf
+else
+  echo "WARNING: Can't access /etc/ykfde.conf. Falling back to defaults."
+fi
 
-if [ "${_tmp:-}" != 1 ]; then
-  printf '%s\n' "ERROR: Choosen YubiKey slot \"${YKFDE_CHALLENGE_SLOT:-2}\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
+[ "$DBG" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"$YKFDE_CHALLENGE_SLOT\"): \"$YKFDE_SLOT_CHECK\""
+
+if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
+  printf '%s\n' "ERROR: Choosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
 printf '%s\n' "WARNING: This script will run 'cryptsetup luksFormat $*'.  If this is not what you intended, please abort."
 
-if [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then
+[ -z "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE_PASSWORD_NEEDED=1
+[ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
+while [ -z "$YKFDE_CHALLENGE" ]; do
   echo " > Please provide the challenge."
-  while [ -z "${_pw:-}" ]; do
-    printf "   Enter challenge: "
-    if [ "${DBG:-}" ]; then read -r _pw; else read -r -s _pw; fi
-    printf "\\n > Please repeat the challenge.\\n"
-    printf "   Enter challenge: "
-    if [ "${DBG:-}" ]; then read -r _pw2; else read -r -s _pw2; fi
-    if [ "$_pw" != "$_pw2" ]; then
-      echo "ERROR: Challenges do not match."
-      exit 1
-    fi
-    _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
-  done
+  printf "   Enter challenge: "
+  if [ "$DBG" ]; then read -r YKFDE_CHALLENGE; else read -r -s YKFDE_CHALLENGE; fi
+  printf "\\n > Please repeat the challenge.\\n"
+  printf "   Enter challenge: "
+  if [ "$DBG" ]; then read -r YKFDE_CHALLENGE2; else read -r -s YKFDE_CHALLENGE2; fi
+  if [ "$YKFDE_CHALLENGE" != "$YKFDE_CHALLENGE2" ]; then
+    echo "WARNING: Challenges do not match. Try again."
+    YKFDE_CHALLENGE=""
+  fi
+  [ "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
   # if /NOT/ DBG, we need to output \n here.
-  [ "${DBG:-}" ] || echo
-  YKFDE_CHALLENGE="$_pw"
+  [ "$DBG" ] || echo
+done
+
+if [ -z "$YKFDE_CHALLENGE" ]; then
+  echo "ERROR: ykfde challenge is empty. Operation aborted."
+  exit 1
 fi
 
 echo "   Remember to touch the device if necessary."
-[ "${DBG:-}" ] && printf '%s\n' "   Running: 'ykchalresp -${YKFDE_CHALLENGE_SLOT:-2} \"$YKFDE_CHALLENGE\"'..."
+[ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"'..."
 # we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
 set +e
-_passphrase="$(ykchalresp -"${YKFDE_CHALLENGE_SLOT:-2}" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
 set -e
-if [ -z "$_passphrase" ]; then
+if [ -z "$YKFDE_RESPONSE" ]; then
+  sleep 3
   echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-  _passphrase="$(ykchalresp -"${YKFDE_CHALLENGE_SLOT:-2}" "$YKFDE_CHALLENGE" | tr -d '\n')"
+  YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" | tr -d '\n')"
 fi
 
-[ "${DBG:-}" ] && printf '%s\n' "   Received response: '$_passphrase'"
+[ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_RESPONSE'"
 
-if [ "$_passphrase" ] && [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then
-  _passphrase="$_pw$_passphrase"
+if [ "$YKFDE_RESPONSE" ]; then
+  if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+    YKFDE_PASSPHRASE="$YKFDE_CHALLENGE$YKFDE_RESPONSE"
+  else
+    YKFDE_PASSPHRASE="$YKFDE_RESPONSE"
+  fi
 fi
 
-if [ "$_passphrase" ]; then
-  [ "${DBG:-}" ] && printf '%s\n' " > Passing '$_passphrase' to 'cryptsetup'"
-  printf '%s\n' "$_passphrase" | cryptsetup luksFormat "$@"
+if [ "$YKFDE_PASSPHRASE" ]; then
+  [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
+  printf '%s\n' "$YKFDE_PASSPHRASE" | cryptsetup luksFormat "$@"
 else
-  echo "ERROR: LUKS passphrase is empty. Operation aborted."
+  echo "ERROR: ykfde passphrase is empty. Operation aborted."
   exit 1
 fi
 

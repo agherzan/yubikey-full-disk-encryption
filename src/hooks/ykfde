@@ -1,6 +1,18 @@
 #!/usr/bin/ash
 
+# set default values:
+DBG=""
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
+YKFDE_DISK_UUID=""
+YKFDE_LUKS_NAME=""
+YKFDE_LUKS_DEV=""
+YKFDE_LUKS_OPTIONS=""
+YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT="30"
+YKFDE_CRYPTSETUP_TRIALS="5"
+YKFDE_CHALLENGE_SLOT="2"
+YKFDE_CHALLENGE=""
+YKFDE_CHALLENGE_PASSWORD_NEEDED=""
+YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
 
 run_hook() {
   local _tmp
@@ -40,13 +52,8 @@ EOF
     fi
   fi
 
-  # set default values:
-  [ -z "$YKFDE_LUKS_DEV" ] && YKFDE_LUKS_DEV="/dev/disk/by-uuid/$YKFDE_DISK_UUID"
-  [ -z "$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT" ] && YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT="30"
-  [ -z "$YKFDE_CRYPTSETUP_TRIALS" ] && YKFDE_CRYPTSETUP_TRIALS="5"
-  [ -z "$YKFDE_CHALLENGE_SLOT" ] && YKFDE_CHALLENGE_SLOT="2"
-
   # sanity checks:
+  [ -z "$YKFDE_LUKS_DEV" ] && YKFDE_LUKS_DEV="/dev/disk/by-uuid/$YKFDE_DISK_UUID"
   [ "$YKFDE_CRYPTSETUP_TRIALS" -lt 1 ] && YKFDE_CRYPTSETUP_TRIALS="5"
   [ "$YKFDE_CHALLENGE_SLOT" -lt 1 ] || [ "$YKFDE_CHALLENGE_SLOT" -gt 2 ] && YKFDE_CHALLENGE_SLOT="2"
 
@@ -85,8 +92,8 @@ ykfde_err() {
 # assemble passphrase and run 'cryptsetup luksOpen'
 ykfde_do_it() {
   # key used to 'cryptsetup luksOpen'
-  local _passphrase
-  _passphrase=""
+  local ykfde_passphrase
+  ykfde_passphrase=""
   local _tmp
   _tmp=""
   local _rc
@@ -95,29 +102,29 @@ ykfde_do_it() {
   # if we have a challenge
   [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && ykfde_challenge_response
 
-  if [ -z "$_passphrase" ]; then
+  if [ -z "$ykfde_passphrase" ]; then
     if [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
       printf " > Challenge-Response failed.\\n   Falling back to manual passphrase.\\n"
       [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
     else
-      echo " > Passphrase needed to unlock disk."
+      echo " > Passphrase needed to unlock device."
     fi
 
     printf "   Enter passphrase: "
     # shellcheck disable=SC2169
-    if [ "$DBG" ]; then read -r _passphrase; else read -r -s _passphrase; fi
+    if [ "$DBG" ]; then read -r ykfde_passphrase; else read -r -s ykfde_passphrase; fi
     # if /NOT/ DBG, we need to output \n here.
     [ "$DBG" ] || echo
   fi
 
-  [ "$DBG" ] && printf '%s\n' " > Passing '$_passphrase' to 'cryptsetup'"
-  if [ "$RESUME" ]; then
+  [ "$DBG" ] && printf '%s\n' " > Passing '$ykfde_passphrase' to 'cryptsetup'"
+  if [ "$ykfde_resume" ]; then
     # shellcheck disable=SC2154
     [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksResume \"$cryptname\"'..." || echo " > Decrypting with 'cryptsetup'..."
-    _tmp="$(printf %s "$_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
+    _tmp="$(printf %s "$ykfde_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
   else
     [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\"'..." || echo " > Decrypting with 'cryptsetup'..."
-    _tmp="$(printf %s "$_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
+    _tmp="$(printf %s "$ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
   fi
   _rc=$?
 
@@ -141,6 +148,8 @@ ykfde_challenge_response() {
   _yubikey_timeout_str=""
   local _yubikey_detected
   _yubikey_detected=""
+  local ykfde_response
+  ykfde_response=""
   # to determine if a timeout occured
   local _starttime
   _starttime=""
@@ -175,35 +184,35 @@ ykfde_challenge_response() {
     fi
   done
 
-  if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-    local _pw
-    _pw=""
+  [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
+  while [ -z "$YKFDE_CHALLENGE" ]; do
     echo " > Please provide the challenge."
-    while [ -z "$_pw" ]; do
-      printf "   Enter challenge: "
-      # shellcheck disable=SC2169
-      if [ "$DBG" ]; then read -r _pw; else read -r -s _pw; fi
-      _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
-    done
+    printf "   Enter challenge: "
+    # shellcheck disable=SC2169
+    if [ "$DBG" ]; then read -r YKFDE_CHALLENGE; else read -r -s YKFDE_CHALLENGE; fi
+    YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
     # if /NOT/ DBG, we need to output \n here.
     [ "$DBG" ] || echo
-    YKFDE_CHALLENGE="$_pw"
-  fi
+  done
 
   echo "   Remember to touch the device if necessary."
   [ "$DBG" ] && printf '%s\n' "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
-  _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
-  if [ -z "$_passphrase" ]; then
+  ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+  if [ -z "$ykfde_response" ]; then
     printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
-    _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+    ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
   fi
-  if [ -z "$_passphrase" ]; then
+  if [ -z "$ykfde_response" ]; then
     printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
-    _passphrase="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+    ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
   fi
-  [ "$DBG" ] && printf '%s\n' "   Received response: '$_passphrase'"
+  [ "$DBG" ] && printf '%s\n' "   Received response: '$ykfde_response'"
 
-  if [ "$_passphrase" ] && [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-    _passphrase="$_pw$_passphrase"
+  if [ "$ykfde_response" ]; then
+    if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+      ykfde_passphrase="$YKFDE_CHALLENGE$ykfde_response"
+    else
+      ykfde_passphrase="$ykfde_response"
+    fi
   fi
 }

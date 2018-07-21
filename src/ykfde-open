@@ -2,7 +2,24 @@
 
 set -euo pipefail
 
-. /etc/ykfde.conf
+# sanitize environment
+YKFDE_LUKS_DEV=""
+YKFDE_LUKS_NAME=""
+YKFDE_PRINT_ONLY=""
+YKFDE_MOUNT=""
+DBG=""
+YKFDE_SLOT_CHECK=""
+YKFDE_CHALLENGE_SLOT="2"
+YKFDE_CHALLENGE_PASSWORD_NEEDED=""
+YKFDE_CHALLENGE=""
+YKFDE_RESPONSE=""
+YKFDE_PASSPHRASE=""
+
+if [ -r /etc/ykfde.conf ]; then
+  . /etc/ykfde.conf
+else
+  echo "WARNING: Can't access /etc/ykfde.conf. Falling back to defaults."
+fi
 
 while getopts ":d:n:pmvh" opt; do
   case "$opt" in
@@ -19,7 +36,7 @@ while getopts ":d:n:pmvh" opt; do
       echo "INFO: Showing complied cleartext passphrase without unlocking"
       ;;
     m)
-      MOUNT=1
+      YKFDE_MOUNT=1
       echo "INFO: Mounting device"
       ;;
     v)
@@ -50,95 +67,99 @@ while getopts ":d:n:pmvh" opt; do
   esac
 done
 
-_tmp="$(ykinfo -q -"${YKFDE_CHALLENGE_SLOT:-2}")"
-[ "${DBG:-}" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"${YKFDE_CHALLENGE_SLOT:-2}\"): \"${_tmp:-}\""
+YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
+[ "$DBG" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"$YKFDE_CHALLENGE_SLOT\"): \"$YKFDE_SLOT_CHECK\""
 
-if [ "${_tmp:-}" != 1 ]; then
-  printf '%s\n' "ERROR: Choosen YubiKey slot \"${YKFDE_CHALLENGE_SLOT:-2}\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
+  printf '%s\n' "ERROR: Choosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
-if [ -z "${YKFDE_PRINT_ONLY:-}" ]; then
-  if [ -z "${YKFDE_LUKS_DEV:-}" ]; then
+if [ -z "$YKFDE_PRINT_ONLY" ]; then
+  if [ -z "$YKFDE_LUKS_DEV" ]; then
     echo "ERROR: Device not selected. Please select an existing device using '-d' option, see 'ykfde-open -h' for help."
     exit 1
   fi
-  if [ ! -e "${YKFDE_LUKS_DEV:-}" ]; then
-    printf '%s\n' "ERROR: Selected device \"${YKFDE_LUKS_DEV:-}\" doesn't exist. Please select an existing device."
+  if [ ! -e "$YKFDE_LUKS_DEV" ]; then
+    printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" doesn't exist. Please select an existing device."
     exit 1
   fi
   if [ "$(id -u)" -eq 0 ]; then
-    if ! cryptsetup isLuks "${YKFDE_LUKS_DEV:-}"; then
-      printf '%s\n' "ERROR: Selected device \"${YKFDE_LUKS_DEV:-}\" isn't a LUKS encrypted volume. Please select a valid device."
+    if ! cryptsetup isLuks "$YKFDE_LUKS_DEV"; then
+      printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't a LUKS encrypted volume. Please select a valid device."
       exit 1
     fi
-    if [ -z "${YKFDE_LUKS_NAME:-}" ]; then
+    if [ -z "$YKFDE_LUKS_NAME" ]; then
       printf '%s\n' "ERROR: Please set the new encrypted volume name using '-n' option, see 'ykfde-open -h' for help."
       exit 1
     fi
   fi
-  printf '%s\n' "WARNING: This script will try to open the \"${YKFDE_LUKS_NAME:-}\" LUKS encrypted volume on drive \"${YKFDE_LUKS_DEV:-}\" . If this is not what you intended, please abort."
+  printf '%s\n' "WARNING: This script will try to open the \"$YKFDE_LUKS_NAME\" LUKS encrypted volume on drive \"$YKFDE_LUKS_DEV\" . If this is not what you intended, please abort."
 fi
 
-if [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then
+[ -z "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE_PASSWORD_NEEDED=1
+[ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
+while [ -z "$YKFDE_CHALLENGE" ]; do
   echo " > Please provide the challenge."
-  while [ -z "${_pw:-}" ]; do
-    printf "   Enter challenge: "
-    if [ "${DBG:-}" ]; then read -r _pw; else read -r -s _pw; fi
-    _pw="$(printf %s "$_pw" | sha256sum | awk '{print $1}')"
-  done
+  printf "   Enter challenge: "
+  if [ "$DBG" ]; then read -r YKFDE_CHALLENGE; else read -r -s YKFDE_CHALLENGE; fi
+  YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
   # if /NOT/ DBG, we need to output \n here.
-  [ "${DBG:-}" ] || echo
-  YKFDE_CHALLENGE="$_pw"
-fi
+  [ "$DBG" ] || echo
+done
 
 echo "   Remember to touch the device if necessary."
-[ "${DBG:-}" ] && printf '%s\n' "   Running: 'ykchalresp -${YKFDE_CHALLENGE_SLOT:-2} \"$YKFDE_CHALLENGE\"'..."
+[ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"'..."
 # we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
 set +e
-_passphrase="$(ykchalresp -"${YKFDE_CHALLENGE_SLOT:-2}" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
 set -e
-if [ -z "$_passphrase" ]; then
+if [ -z "$YKFDE_RESPONSE" ]; then
+  sleep 3
   echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-  _passphrase="$(ykchalresp -"${YKFDE_CHALLENGE_SLOT:-2}" "$YKFDE_CHALLENGE" | tr -d '\n')"
+  YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" | tr -d '\n')"
 fi
 
-[ "${DBG:-}" ] && printf '%s\n' "   Received response: '$_passphrase'"
+[ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_RESPONSE'"
 
-if [ "$_passphrase" ] && [ "${YKFDE_CHALLENGE_PASSWORD_NEEDED:-}" ]; then
-  _passphrase="$_pw$_passphrase"
+if [ "$YKFDE_RESPONSE" ]; then
+  if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+    YKFDE_PASSPHRASE="$YKFDE_CHALLENGE$YKFDE_RESPONSE"
+  else
+    YKFDE_PASSPHRASE="$YKFDE_RESPONSE"
+  fi
 fi
 
-if [ "${YKFDE_PRINT_ONLY:-}" ]; then
-  printf '%s\n' " > LUKS passphrase: $_passphrase"
+if [ "$YKFDE_PRINT_ONLY" ]; then
+  printf '%s\n' " > LUKS passphrase: $YKFDE_PASSPHRASE"
   exit 0
 fi
 
 if [ "$(id -u)" -eq 0 ]; then
-  [ "${DBG:-}" ] && printf '%s\n' " > Passing '$_passphrase' to 'cryptsetup'"
-  [ "${DBG:-}" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen \"${YKFDE_LUKS_DEV:-}\" \"${YKFDE_LUKS_NAME:-}\"'..." || echo " > Decrypting with 'cryptsetup'..."
-  printf %s "$_passphrase" | cryptsetup luksOpen "${YKFDE_LUKS_DEV:-}" "${YKFDE_LUKS_NAME:-}" 2>&1
-  printf '%s\n' "   Device succesfully opened as '/dev/mapper/${YKFDE_LUKS_NAME:-}'"
-elif [ ! -b "${YKFDE_LUKS_DEV:-}" ]; then
+  [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\"'..." || echo " > Decrypting with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1
+  printf '%s\n' "   Device succesfully opened as '/dev/mapper/$YKFDE_LUKS_NAME'"
+elif [ ! -b "$YKFDE_LUKS_DEV" ]; then
   # udisks doesn't work with regular file based devies
-  printf '%s\n' "ERROR: Selected device \"${YKFDE_LUKS_DEV:-}\" isn't a block device file. Please open it with 'cryptsetup' by executing this script as 'root'."
+  printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't a block device file. Please open it with 'cryptsetup' by executing this script as 'root'."
   exit 1
-elif ! udisksctl info -b "${YKFDE_LUKS_DEV:-}" | grep -iq 'crypto_LUKS'; then
-  printf '%s\n' "ERROR: Selected device \"${YKFDE_LUKS_DEV:-}\" isn't a LUKS encrypted volume. Please select a valid device."
+elif ! udisksctl info -b "$YKFDE_LUKS_DEV" | grep -iq 'crypto_LUKS'; then
+  printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't a LUKS encrypted volume. Please select a valid device."
   exit 1
 else
-  [ "${DBG:-}" ] && printf '%s\n' " > Passing '$_passphrase' to 'udisksctl'"
-  [ "${DBG:-}" ] && printf '%s\n' " > Decrypting with 'udisksctl unlock -b \"${YKFDE_LUKS_DEV:-}\"'..." || echo " > Decrypting with 'udisksctl'..."
+  [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'udisksctl'"
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'udisksctl unlock -b \"$YKFDE_LUKS_DEV\"'..." || echo " > Decrypting with 'udisksctl'..."
   expect <(
     cat <<EXPECTSCRIPT
 	set timeout -1
-	spawn udisksctl unlock -b "${YKFDE_LUKS_DEV:-}"
+	spawn udisksctl unlock -b "$YKFDE_LUKS_DEV"
 	match_max 100000
 	expect -exact "Passphrase: "
-	send -- "${_passphrase}\\r"
+	send -- "${YKFDE_PASSPHRASE}\\r"
 	expect -re "Unlocked .* as (.*).\\r\\n" {
 		set unlocked \$expect_out(1,string)
-		if ("${MOUNT:-0}") {
+		if ("$YKFDE_MOUNT") {
 			spawn udisksctl mount -b \$unlocked
 			expect eof
 		}

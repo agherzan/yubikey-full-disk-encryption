@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-CONFFILE=""
+# set default values:
+YKFDE_CONFIG_FILE="/etc/ykfde.conf"
 YKFDE_CHALLENGE=""
 YKFDE_CHALLENGE_PASSWORD_NEEDED=""
 YKFDE_CHALLENGE_SLOT=""
@@ -12,12 +13,11 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-CONFFILE="/etc/ykfde.conf"
-. "$CONFFILE"
+. "$YKFDE_CONFIG_FILE"
 [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
 
 if [ -z "$YKFDE_CHALLENGE" ] && [ -z "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-  printf '%s\n' "ERROR: No ykfde mode enabled. Please enable 'Automatic mode with stored challenge (1FA)' or 'Manual mode with secret challenge (2FA)' in \"$CONFFILE\"."
+  printf '%s\n' "ERROR: No ykfde mode enabled. Please enable 'Automatic mode with stored challenge (1FA)' or 'Manual mode with secret challenge (2FA)' in \"$YKFDE_CONFIG_FILE\"."
   exit 1
 elif [ "$YKFDE_CHALLENGE" ]; then
   echo "INFO: 'Automatic mode with stored challenge (1FA)' is enabled."
@@ -40,7 +40,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "INFO: Testing 'ykfde-format' script."
-ykfde-format "$YKFDE_TMPFILE"
+DBG=1 ykfde-format "$YKFDE_TMPFILE"
 echo "Test 'ykfde-format' script succesfully passed."
 
 echo "INFO: Testing 'ykfde-enroll' script."
