@@ -33,7 +33,7 @@ while getopts ":d:n:pmvh" opt; do
       ;;
     p)
       YKFDE_PRINT_ONLY=1
-      echo "INFO: Showing complied cleartext passphrase without unlocking"
+      echo "INFO: Showing cleartext ykfde passphrase without unlocking"
       ;;
     m)
       YKFDE_MOUNT=1
@@ -47,7 +47,7 @@ while getopts ":d:n:pmvh" opt; do
       echo
       echo " -d <device>   : select an existing device"
       echo " -n <name>     : set the new encrypted volume name"
-      echo " -p            : show cleartext passphrase without unlocking"
+      echo " -p            : show cleartext ykfde passphrase without unlocking"
       echo " -m            : mount unlocked device (non root user only)"
       echo " -v            : show input/output in cleartext"
       echo
@@ -58,7 +58,7 @@ while getopts ":d:n:pmvh" opt; do
       echo
       echo " -d <device>   : select an existing device"
       echo " -n <name>     : set the new encrypted volume name"
-      echo " -p            : show cleartext passphrase without unlocking"
+      echo " -p            : show cleartext ykfde passphrase without unlocking"
       echo " -m            : mount unlocked device (non root user only)"
       echo " -v            : show input/output in cleartext"
       echo
@@ -131,7 +131,7 @@ if [ "$YKFDE_RESPONSE" ]; then
 fi
 
 if [ "$YKFDE_PRINT_ONLY" ]; then
-  printf '%s\n' " > LUKS passphrase: $YKFDE_PASSPHRASE"
+  printf '%s\n' " > ykfde passphrase: $YKFDE_PASSPHRASE"
   exit 0
 fi
 

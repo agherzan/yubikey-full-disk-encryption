@@ -42,7 +42,7 @@ Example *challenge*:`123456abcdef`
 
 The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided challenge and secret key stored inside token. It will be used as your *LUKS* encrypted volume passphrase.
 
-Example *response* (LUKS passphrase): `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
+Example *response* (ykfde passphrase): `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
 In this mode possession of your *YubiKey* is enough to unlock a *LUKS* encrypted volume (1FA). It allows for the easy unlocking of encrypted volumes when *YubiKey* is present without need for user action.
 
@@ -67,7 +67,7 @@ Example hashed *challenge*: `8fa0acf6233b92d2d48a30a315cd213748d48f28eaa63d75905
 
 Example response: `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
-Example LUKS passphrase: `8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
+Example ykfde passphrase: `8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
 This strong passphrase cannot be broken by brute force. To recreate it one would need both your passphrase (something you know) and your *YubiKey* (something you have) which means it works like 2FA.
 
