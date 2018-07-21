@@ -92,8 +92,8 @@ ykfde_err() {
 # assemble passphrase and run 'cryptsetup luksOpen'
 ykfde_do_it() {
   # key used to 'cryptsetup luksOpen'
-  local ykfde_passphrase
-  ykfde_passphrase=""
+  local _ykfde_passphrase
+  _ykfde_passphrase=""
   local _tmp
   _tmp=""
   local _rc
@@ -102,7 +102,7 @@ ykfde_do_it() {
   # if we have a challenge
   [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && ykfde_challenge_response
 
-  if [ -z "$ykfde_passphrase" ]; then
+  if [ -z "$_ykfde_passphrase" ]; then
     if [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
       printf " > Challenge-Response failed.\\n   Falling back to manual passphrase.\\n"
       [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
@@ -112,19 +112,19 @@ ykfde_do_it() {
 
     printf "   Enter passphrase: "
     # shellcheck disable=SC2169
-    if [ "$DBG" ]; then read -r ykfde_passphrase; else read -r -s ykfde_passphrase; fi
+    if [ "$DBG" ]; then read -r _ykfde_passphrase; else read -r -s _ykfde_passphrase; fi
     # if /NOT/ DBG, we need to output \n here.
     [ "$DBG" ] || echo
   fi
 
-  [ "$DBG" ] && printf '%s\n' " > Passing '$ykfde_passphrase' to 'cryptsetup'"
+  [ "$DBG" ] && printf '%s\n' " > Passing '$_ykfde_passphrase' to 'cryptsetup'"
   if [ "$ykfde_resume" ]; then
     # shellcheck disable=SC2154
     [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksResume \"$cryptname\"'..." || echo " > Decrypting with 'cryptsetup'..."
-    _tmp="$(printf %s "$ykfde_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
+    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
   else
     [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\"'..." || echo " > Decrypting with 'cryptsetup'..."
-    _tmp="$(printf %s "$ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
+    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
   fi
   _rc=$?
 
@@ -148,8 +148,8 @@ ykfde_challenge_response() {
   _yubikey_timeout_str=""
   local _yubikey_detected
   _yubikey_detected=""
-  local ykfde_response
-  ykfde_response=""
+  local _ykfde_response
+  _ykfde_response=""
   # to determine if a timeout occured
   local _starttime
   _starttime=""
@@ -197,22 +197,22 @@ ykfde_challenge_response() {
 
   echo "   Remember to touch the device if necessary."
   [ "$DBG" ] && printf '%s\n' "   Running: ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"..."
-  ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
-  if [ -z "$ykfde_response" ]; then
+  _ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+  if [ -z "$_ykfde_response" ]; then
     printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
-    ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+    _ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
   fi
-  if [ -z "$ykfde_response" ]; then
+  if [ -z "$_ykfde_response" ]; then
     printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
-    ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+    _ykfde_response="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
   fi
-  [ "$DBG" ] && printf '%s\n' "   Received response: '$ykfde_response'"
+  [ "$DBG" ] && printf '%s\n' "   Received response: '$_ykfde_response'"
 
-  if [ "$ykfde_response" ]; then
+  if [ "$_ykfde_response" ]; then
     if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-      ykfde_passphrase="$YKFDE_CHALLENGE$ykfde_response"
+      _ykfde_passphrase="$YKFDE_CHALLENGE$_ykfde_response"
     else
-      ykfde_passphrase="$ykfde_response"
+      _ykfde_passphrase="$_ykfde_response"
     fi
   fi
 }
