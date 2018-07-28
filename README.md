@@ -40,7 +40,7 @@ In *Automatic mode* you create custom *challenge* with 0-64 byte length and stor
 
 Example *challenge*:`123456abcdef`
 
-The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided challenge and secret key stored inside token. It will be used as your *LUKS* encrypted volume passphrase.
+The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided challenge and 20 byte length secret key stored inside the token. It will be used as your *LUKS* encrypted volume passphrase.
 
 Example *response* (ykfde passphrase): `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
@@ -63,7 +63,7 @@ printf 123456abcdef | sha256sum | awk '{print $1}'
 
 Example hashed *challenge*: `8fa0acf6233b92d2d48a30a315cd213748d48f28eaa63d7590509392316b3016`
 
- The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided *challenge* and secret key stored inside token. It will be concatenated with the *challenge* and used as your *LUKS* encrypted volume passphrase for a total length of 104 (64+40) bytes.
+ The *YubiKey* *response* is a *HMAC-SHA1* 40 byte length string created from your provided *challenge* and 20 byte length secret key stored inside the token. It will be concatenated with the *challenge* and used as your *LUKS* encrypted volume passphrase for a total length of 104 (64+40) bytes.
 
 Example response: `bd438575f4e8df965c80363f8aa6fe1debbe9ea9`
 
@@ -112,7 +112,11 @@ Above arguments mean:
 * Allow YubiKey serial number to be read using an API call (`-oserial-api-visible`)
 * Require touching YubiKey before issue response (`-ochal-btn-trig`) *(optional)*
 
-You may instead enable *HMAC-SHA1 Challenge-Response* mode using graphical interface through [yubikey-personalization-gui](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization-gui/) package.
+This command will enable *HMAC-SHA1 Challenge-Response* mode on a choosen slot and write random 20 byte length secret key to your YubiKey which will be used for creating ykfde passphrases.
+
+**Warning: choosing YubiKey slot already configured for *HMAC-SHA1 Challenge-Response* mode will overwrite secret key with the new one which means ykfde passphrases created with the old key will be unrecoverable.**
+
+You may instead enable *HMAC-SHA1 Challenge-Response* mode using graphical interface through [yubikey-personalization-gui](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization-gui/) package. It allows for customization of the secret key, creation of secret key backup and writing the same secret key to multpile YubiKeys which allows for using them interchangeably for creating same ykfde passphrases. 
 
 ## Editing /etc/ykfde.conf file
 
@@ -130,7 +134,7 @@ sudo mkinitcpio -P
 For formatting new *LUKS* encrypted volume, you can use [ykfde-format](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-format) script which is wrapper over `cryptsetup luksFormat` command, see `ykfde-format -h` for help:
 
 ```
-ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha256 --iter-time 5000 /dev/<device>
+ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha512 /dev/<device>
 ```
 
 ## Enrolling ykfde passphrase to existing LUKS encrypted volume
@@ -140,6 +144,8 @@ For enrolling new ykfde passphrase to existing *LUKS* encrypted volume you can u
 ```
 ykfde-enroll -d /dev/<device> -s <keyslot_number>
 ```
+
+**Warning: having a weaker non-ykfde passphrase(s) on the same *LUKS* encrypted volume undermines the ykfde passphrase value as potential attacker will always try to break the weaker passphrase. Make sure the other  non-ykfde passphrases are similarly strong or remove them.**
 
 ## Unlocking LUKS encrypted volume protected by ykfde passphrase
 
@@ -154,12 +160,20 @@ ykfde-open -d /dev/<device>
 As root using cryptsetup (when udisks is not available):
 
 ```
-ykfde-open -d /dev/<device> -n <container_name>
+ykfde-open -d /dev/<device> -n <volume_name>
 ```
 
+For only printing the ykfde passphrase to the console without unlocking any volumes:
+
+```
+ykfde-open -p
+```
+ 
 ## Enabling ykfde initramfs hook
 
-Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+**Warning: It's recommended to have already working [encrypted system setup](https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system) with `encrypt` hook and non-ykfde passphrase before starting to use `ykfde` hook with ykfde passphrase to avoid potential misconfigurations.**
+
+Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). Adding `ykfde` hook before `encrypt` hook will allow for a safe fallback in case of ykfde misconfiguration. You can remove `encrypt` hook later when you confim that everything is working correctly. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
 ```
 sudo mkinitcpio -P
@@ -167,11 +181,13 @@ sudo mkinitcpio -P
 
 Reboot and test your configuration.
 
-## Enabling ykfde suspend hook
+## Enabling ykfde suspend service
 
-You can enable the `ykfde-suspend` hook which allows for automatically locking encrypted *LUKS* volumes and wiping keys from memory on suspend and unlocking them on resume by using `cryptsetup luksSuspend` and `cryptsetup luksResume` commands. **Warning: RAM storage stays unencrypted in that case.**
+You can enable the `ykfde-suspend` service which allows for automatically locking encrypted *LUKS* volumes and wiping keys from memory on suspend and unlocking them on resume by using `cryptsetup luksSuspend` and `cryptsetup luksResume` commands.
 
-Edit `/etc/mkinitcpio.conf` and make sure the following hooks are enabled: `udev`, `ykfde` and `shutdown`. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+**Warning: RAM storage stays unencrypted in that case.**
+
+Edit `/etc/mkinitcpio.conf` and add `shutdown` hook as the last in `HOOKS` array. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
 ```
 sudo mkinitcpio -P
