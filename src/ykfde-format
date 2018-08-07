@@ -21,7 +21,7 @@ YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
 [ "${DBG:-}" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"$YKFDE_CHALLENGE_SLOT\"): \"$YKFDE_SLOT_CHECK\""
 
 if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
-  printf '%s\n' "ERROR: Choosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+  printf '%s\n' "ERROR: Chosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
@@ -80,6 +80,6 @@ else
   exit 1
 fi
 
-echo "   New LUKS device succesfully formatted"
+echo "   New LUKS device successfully formatted"
 
 exit 0

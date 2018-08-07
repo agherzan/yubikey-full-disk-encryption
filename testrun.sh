@@ -41,19 +41,19 @@ trap cleanup EXIT
 
 echo "INFO: Testing 'ykfde-format' script."
 DBG=1 ykfde-format "$YKFDE_TMPFILE"
-echo "Test 'ykfde-format' script succesfully passed."
+echo "Test 'ykfde-format' script successfully passed."
 
 echo "INFO: Testing 'ykfde-enroll' script."
 printf '%s\n' "test" | cryptsetup luksFormat "$YKFDE_TMPFILE"
 echo "INFO: Old LUKS passphrase is \"test\"."
 ykfde-enroll -d "$YKFDE_TMPFILE" -s 7 -v
-echo "Test 'ykfde-enroll' script succesfully passed."
+echo "Test 'ykfde-enroll' script successfully passed."
 
 echo "INFO: Testing 'ykfde-open' script."
 ykfde-open -d "$YKFDE_TMPFILE" -n ykfde-test -v
 cryptsetup close ykfde-test
-echo "Test 'ykfde-open' script succesfully passed."
+echo "Test 'ykfde-open' script successfully passed."
 
-echo "All tests succesfully passed."
+echo "All tests successfully passed."
 
 exit 0

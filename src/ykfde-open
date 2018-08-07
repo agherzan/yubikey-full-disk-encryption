@@ -71,7 +71,7 @@ YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
 [ "$DBG" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"$YKFDE_CHALLENGE_SLOT\"): \"$YKFDE_SLOT_CHECK\""
 
 if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
-  printf '%s\n' "ERROR: Choosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+  printf '%s\n' "ERROR: Chosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
@@ -139,7 +139,7 @@ if [ "$(id -u)" -eq 0 ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
   [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\"'..." || echo " > Decrypting with 'cryptsetup'..."
   printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" 2>&1
-  printf '%s\n' "   Device succesfully opened as '/dev/mapper/$YKFDE_LUKS_NAME'"
+  printf '%s\n' "   Device successfully opened as '/dev/mapper/$YKFDE_LUKS_NAME'"
 elif [ ! -b "$YKFDE_LUKS_DEV" ]; then
   # udisks doesn't work with regular file based devies
   printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't a block device file. Please open it with 'cryptsetup' by executing this script as 'root'."
@@ -167,7 +167,7 @@ else
 EXPECTSCRIPT
   )
 
-  echo "   Device succesfully opened"
+  echo "   Device successfully opened"
 
 fi
 

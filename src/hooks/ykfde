@@ -129,7 +129,7 @@ ykfde_do_it() {
   _rc=$?
 
   if [ "$_rc" -eq 0 ]; then
-    echo "   Decryption was succesful."
+    echo "   Decryption was successful."
     if [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" ] && [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" -gt 0 ]; then
       [ "$DBG" ] && printf '%s\n' " > Making $YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP sleep."
       sleep "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP"
@@ -150,7 +150,7 @@ ykfde_challenge_response() {
   _yubikey_detected=""
   local _ykfde_response
   _ykfde_response=""
-  # to determine if a timeout occured
+  # to determine if a timeout occurred
   local _starttime
   _starttime=""
   local _endtime

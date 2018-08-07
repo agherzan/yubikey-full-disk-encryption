@@ -27,8 +27,13 @@ while getopts ":d:s:cvh" opt; do
       printf '%s\n' "INFO: Setting device to \"$OPTARG\"."
       ;;
     s)
-      LUKS_KEYSLOT="$OPTARG"
-      printf '%s\n' "INFO: Setting LUKS keyslot to \"$OPTARG\"."
+      if [ "$OPTARG" -gt -8 ] && [ "$OPTARG" -lt 8 ]; then
+        LUKS_KEYSLOT="$OPTARG"
+        printf '%s\n' "INFO: Setting LUKS keyslot to \"$OPTARG\"."
+      else
+        printf '%s\n' "ERROR: Chosen LUKS keyslot \"$OPTARG\" is invalid. Please choose valid LUKS keyslot number between '0-7'."
+        exit 1
+      fi
       ;;
     c)
       CHANGE_KEYSLOT=1
@@ -64,7 +69,7 @@ YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
 [ "$DBG" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"$YKFDE_CHALLENGE_SLOT\"): \"$YKFDE_SLOT_CHECK\""
 
 if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
-  printf '%s\n' "ERROR: Choosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+  printf '%s\n' "ERROR: Chosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
@@ -79,7 +84,7 @@ if [ ! -e "$YKFDE_LUKS_DEV" ]; then
 fi
 
 if [ ! -r "$YKFDE_LUKS_DEV" ] || [ ! -w "$YKFDE_LUKS_DEV" ]; then
-  printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't accesible for current user '$(whoami)'. Please execute this script as 'root'."
+  printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't accessible for current user '$(whoami)'. Please execute this script as 'root'."
   exit 1
 fi
 
@@ -158,6 +163,6 @@ else
   exit 1
 fi
 
-echo "   New LUKS passphrase succesfully added"
+echo "   New LUKS passphrase successfully added"
 
 exit 0

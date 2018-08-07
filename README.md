@@ -16,18 +16,18 @@ There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](ht
    * [Design](#design)
       * [Automatic mode with stored challenge (1FA)](#automatic-mode-with-stored-challenge-1fa)
       * [Manual mode with secret challenge (2FA)](#manual-mode-with-secret-challenge-2fa)
-   * [Installation](#installation)
-      * [Creating and installing package through pacman (recommended)](#creating-and-installing-package-through-pacman-recommended)
-      * [Manual download and installation](#manual-download-and-installation)
-   * [Configuration](#configuration)
-      * [Configuring HMAC-SHA1 Challenge-Response slot in YubiKey](#configuring-hmac-sha1-challenge-response-slot-in-yubikey)
-      * [Editing /etc/ykfde.conf file](#editing-etcykfdeconf-file)
+   * [Install](#install)
+      * [Create and install package through pacman (recommended)](#create-and-install-package-through-pacman-recommended)
+      * [Download and install manually](#download-and-install-manually)
+   * [Configure](#configure)
+      * [Configure HMAC-SHA1 Challenge-Response slot in YubiKey](#configure-hmac-sha1-challenge-response-slot-in-yubikey)
+      * [Edit /etc/ykfde.conf file](#edit-etcykfdeconf-file)
    * [Usage](#usage)
-      * [Formatting new LUKS encrypted volume using ykfde passphrase](#formatting-new-luks-encrypted-volume-using-ykfde-passphrase)
-      * [Enrolling ykfde passphrase to existing LUKS encrypted volume](#enrolling-ykfde-passphrase-to-existing-luks-encrypted-volume)
-      * [Unlocking LUKS encrypted volume protected by ykfde passphrase](#unlocking-luks-encrypted-volume-protected-by-ykfde-passphrase)
-      * [Enabling ykfde initramfs hook](#enabling-ykfde-initramfs-hook)
-      * [Enabling ykfde suspend hook](#enabling-ykfde-suspend-hook)
+      * [Format new LUKS encrypted volume using ykfde passphrase](#format-new-luks-encrypted-volume-using-ykfde-passphrase)
+      * [Enroll ykfde passphrase to existing LUKS encrypted volume](#enroll-ykfde-passphrase-to-existing-luks-encrypted-volume)
+      * [Unlock LUKS encrypted volume protected by ykfde passphrase](#unlock-luks-encrypted-volume-protected-by-ykfde-passphrase)
+      * [Enable ykfde initramfs hook](#enable-ykfde-initramfs-hook)
+      * [Enable ykfde suspend service](#enable-ykfde-suspend-service)
    * [License](#license)
 
 # Design
@@ -73,16 +73,16 @@ This strong passphrase cannot be broken by brute force. To recreate it one would
 
 Keep in mind that the above doesn't protect you from physical tampering like *evil maid attack* and from *malware* running after you unlock and boot your system. Use security tools designed to prevent those attacks.
 
-# Installation
+# Install
 
-## Creating and installing package through pacman (recommended)
+## Create and install package through pacman (recommended)
 
 ```
 wget https://raw.githubusercontent.com/agherzan/yubikey-full-disk-encryption/master/PKGBUILD
 makepkg -srci
 ```
 
-## Manual download and installation
+## Download and install manually
 
 ```
 git clone https://github.com/agherzan/yubikey-full-disk-encryption.git
@@ -91,10 +91,10 @@ sudo make install
 
 When doing manual installation you also need to install [yubikey-personalization](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization/) and [expect](https://www.archlinux.org/packages/extra/x86_64/expect/) packages.
 
-# Configuration
+# Configure
 
 
-## Configuring HMAC-SHA1 Challenge-Response slot in YubiKey
+## Configure HMAC-SHA1 Challenge-Response slot in YubiKey
 
 First of all you need to [setup a configuration slot](https://wiki.archlinux.org/index.php/Yubikey#Setup_the_slot) for *YubiKey HMAC-SHA1 Challenge-Response* mode using a command similar to:
 
@@ -112,13 +112,13 @@ Above arguments mean:
 * Allow YubiKey serial number to be read using an API call (`-oserial-api-visible`)
 * Require touching YubiKey before issue response (`-ochal-btn-trig`) *(optional)*
 
-This command will enable *HMAC-SHA1 Challenge-Response* mode on a choosen slot and write random 20 byte length secret key to your YubiKey which will be used for creating ykfde passphrases.
+This command will enable *HMAC-SHA1 Challenge-Response* mode on a chosen slot and write random 20 byte length secret key to your YubiKey which will be used for creating ykfde passphrases.
 
 **Warning: choosing YubiKey slot already configured for *HMAC-SHA1 Challenge-Response* mode will overwrite secret key with the new one which means ykfde passphrases created with the old key will be unrecoverable.**
 
 You may instead enable *HMAC-SHA1 Challenge-Response* mode using graphical interface through [yubikey-personalization-gui](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization-gui/) package. It allows for customization of the secret key, creation of secret key backup and writing the same secret key to multpile YubiKeys which allows for using them interchangeably for creating same ykfde passphrases.
 
-## Editing /etc/ykfde.conf file
+## Edit /etc/ykfde.conf file
 
 Open the [/etc/ykfde.conf](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde.conf) file and adjust it for your needs. Alternatively to setting `YKFDE_DISK_UUID` and `YKFDE_LUKS_NAME`, you can use `cryptdevice` kernel parameter. The [syntax](https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption#Configuring_the_kernel_parameters) is compatible with Arch's `encrypt` hook. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
@@ -129,17 +129,17 @@ sudo mkinitcpio -P
 
 # Usage
 
-## Formatting new LUKS encrypted volume using ykfde passphrase
+## Format new LUKS encrypted volume using ykfde passphrase
 
-For formatting new *LUKS* encrypted volume, you can use [ykfde-format](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-format) script which is wrapper over `cryptsetup luksFormat` command, see `ykfde-format -h` for help:
+To format new *LUKS* encrypted volume, you can use [ykfde-format](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-format) script which is wrapper over `cryptsetup luksFormat` command, see `ykfde-format -h` for help:
 
 ```
 ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha512 /dev/<device>
 ```
 
-## Enrolling ykfde passphrase to existing LUKS encrypted volume
+## Enroll ykfde passphrase to existing LUKS encrypted volume
 
-For enrolling new ykfde passphrase to existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
+To enroll new ykfde passphrase to existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
 
 ```
 ykfde-enroll -d /dev/<device> -s <keyslot_number>
@@ -147,9 +147,9 @@ ykfde-enroll -d /dev/<device> -s <keyslot_number>
 
 **Warning: having a weaker non-ykfde passphrase(s) on the same *LUKS* encrypted volume undermines the ykfde passphrase value as potential attacker will always try to break the weaker passphrase. Make sure the other  non-ykfde passphrases are similarly strong or remove them.**
 
-## Unlocking LUKS encrypted volume protected by ykfde passphrase
+## Unlock LUKS encrypted volume protected by ykfde passphrase
 
-For unlocking *LUKS* encrypted volume on a running system, you can use [ykfde-open](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-open) script, see `ykfde-open -h` for help.
+To unlock *LUKS* encrypted volume on a running system, you can use [ykfde-open](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-open) script, see `ykfde-open -h` for help.
 
 As unprivileged user using udisksctl (recommended):
 
@@ -163,13 +163,13 @@ As root using cryptsetup (when udisks is not available):
 ykfde-open -d /dev/<device> -n <volume_name>
 ```
 
-For only printing the ykfde passphrase to the console without unlocking any volumes:
+To print only the ykfde passphrase to the console without unlocking any volumes:
 
 ```
 ykfde-open -p
 ```
 
-## Enabling ykfde initramfs hook
+## Enable ykfde initramfs hook
 
 **Warning: It's recommended to have already working [encrypted system setup](https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system) with `encrypt` hook and non-ykfde passphrase before starting to use `ykfde` hook with ykfde passphrase to avoid potential misconfigurations.**
 
@@ -181,7 +181,7 @@ sudo mkinitcpio -P
 
 Reboot and test your configuration.
 
-## Enabling ykfde suspend service
+## Enable ykfde suspend service
 
 You can enable the `ykfde-suspend` service which allows for automatically locking encrypted *LUKS* volumes and wiping keys from memory on suspend and unlocking them on resume by using `cryptsetup luksSuspend` and `cryptsetup luksResume` commands.
 
