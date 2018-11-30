@@ -34,8 +34,8 @@ run_hook() {
       IFS=: read -r YKFDE_LUKS_DEV YKFDE_LUKS_NAME cryptoptions <<EOF
 $cryptdevice
 EOF
-      for cryptopt in $(echo "$cryptoptions" | tr , ' '); do
-        case "$cryptopt" in
+      for cryptopt in ${cryptoptions//,/ }; do
+        case $cryptopt in
           allow-discards)
             cryptargs="$cryptargs --allow-discards"
             ;;
@@ -123,7 +123,7 @@ ykfde_do_it() {
     [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksResume \"$cryptname\"'..." || echo " > Decrypting with 'cryptsetup'..."
     _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
   else
-    [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\"'..." || echo " > Decrypting with 'cryptsetup'..."
+    [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen \"$YKFDE_LUKS_DEV\" \"$YKFDE_LUKS_NAME\" \"$YKFDE_LUKS_OPTIONS\"'..." || echo " > Decrypting with 'cryptsetup'..."
     _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
   fi
   _rc=$?
