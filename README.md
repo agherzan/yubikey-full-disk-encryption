@@ -27,7 +27,7 @@ There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](ht
       * [Enroll ykfde passphrase to existing LUKS encrypted volume](#enroll-ykfde-passphrase-to-existing-luks-encrypted-volume)
       * [Unlock LUKS encrypted volume protected by ykfde passphrase](#unlock-luks-encrypted-volume-protected-by-ykfde-passphrase)
       * [Enable ykfde initramfs hook](#enable-ykfde-initramfs-hook)
-      * [Enable ykfde suspend service (experimental)](#enable-ykfde-suspend-service)
+      * [Enable ykfde suspend service (experimental)](#enable-ykfde-suspend-service-experimental)
    * [License](#license)
 
 # Design
