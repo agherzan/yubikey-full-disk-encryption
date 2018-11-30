@@ -27,7 +27,7 @@ There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](ht
       * [Enroll ykfde passphrase to existing LUKS encrypted volume](#enroll-ykfde-passphrase-to-existing-luks-encrypted-volume)
       * [Unlock LUKS encrypted volume protected by ykfde passphrase](#unlock-luks-encrypted-volume-protected-by-ykfde-passphrase)
       * [Enable ykfde initramfs hook](#enable-ykfde-initramfs-hook)
-      * [Enable ykfde suspend service](#enable-ykfde-suspend-service)
+      * [Enable ykfde suspend service (experimental)](#enable-ykfde-suspend-service)
    * [License](#license)
 
 # Design
@@ -181,7 +181,7 @@ sudo mkinitcpio -P
 
 Reboot and test your configuration.
 
-## Enable ykfde suspend service
+## Enable ykfde suspend service (experimental)
 
 You can enable the `ykfde-suspend` service which allows for automatically locking encrypted *LUKS* volumes and wiping keys from memory on suspend and unlocking them on resume by using `cryptsetup luksSuspend` and `cryptsetup luksResume` commands.
 

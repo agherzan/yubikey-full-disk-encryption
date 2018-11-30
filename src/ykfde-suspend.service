@@ -15,6 +15,7 @@ After=sleep.target
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/openvt -ws -- /usr/lib/ykfde-suspend/ykfde-suspend
+Nice=-20
 
 [Install]
 Alias=systemd-suspend.service

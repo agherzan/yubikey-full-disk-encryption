@@ -167,8 +167,6 @@ else
 EXPECTSCRIPT
   )
 
-  echo "   Device successfully opened"
-
 fi
 
 exit 0
