@@ -24,14 +24,14 @@ while getopts ":d:s:cvh" opt; do
   case "$opt" in
     d)
       YKFDE_LUKS_DEV="$OPTARG"
-      printf '%s\n' "INFO: Setting device to \"$OPTARG\"."
+      printf '%s\n' "INFO: Setting device to '$OPTARG'."
       ;;
     s)
       if [ "$OPTARG" -gt -8 ] && [ "$OPTARG" -lt 8 ]; then
         LUKS_KEYSLOT="$OPTARG"
-        printf '%s\n' "INFO: Setting LUKS keyslot to \"$OPTARG\"."
+        printf '%s\n' "INFO: Setting LUKS keyslot to '$OPTARG'."
       else
-        printf '%s\n' "ERROR: Chosen LUKS keyslot \"$OPTARG\" is invalid. Please choose valid LUKS keyslot number between '0-7'."
+        printf '%s\n' "ERROR: Chosen LUKS keyslot '$OPTARG' is invalid. Please choose valid LUKS keyslot number between '0-7'."
         exit 1
       fi
       ;;
@@ -53,7 +53,7 @@ while getopts ":d:s:cvh" opt; do
       exit 1
       ;;
     \?)
-      printf '%s\n' "Invalid option: \"-$OPTARG\"" >&2
+      printf '%s\n' "Invalid option: '-$OPTARG'" >&2
       echo
       echo " -d <device>   : select an existing device"
       echo " -s <slot>     : select the LUKS keyslot"
@@ -66,10 +66,10 @@ while getopts ":d:s:cvh" opt; do
 done
 
 YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
-[ "$DBG" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"$YKFDE_CHALLENGE_SLOT\"): \"$YKFDE_SLOT_CHECK\""
+[ "$DBG" ] && printf '%s\n' " > YubiKey slot status 'ykinfo -q -$YKFDE_CHALLENGE_SLOT': $YKFDE_SLOT_CHECK"
 
 if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
-  printf '%s\n' "ERROR: Chosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+  printf '%s\n' "ERROR: Chosen YubiKey slot '$YKFDE_CHALLENGE_SLOT' isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
@@ -79,17 +79,17 @@ if [ -z "$YKFDE_LUKS_DEV" ]; then
 fi
 
 if [ ! -e "$YKFDE_LUKS_DEV" ]; then
-  printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" doesn't exist. Please select an existing device."
+  printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' doesn't exist. Please select an existing device."
   exit 1
 fi
 
 if [ ! -r "$YKFDE_LUKS_DEV" ] || [ ! -w "$YKFDE_LUKS_DEV" ]; then
-  printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't accessible for current user '$(whoami)'. Please execute this script as 'root'."
+  printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' isn't accessible for current user '$(whoami)'. Please execute this script as 'root'."
   exit 1
 fi
 
 if ! cryptsetup isLuks "$YKFDE_LUKS_DEV"; then
-  printf '%s\n' "ERROR: Selected device \"$YKFDE_LUKS_DEV\" isn't a LUKS encrypted volume. Please select a valid device."
+  printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' isn't a LUKS encrypted volume. Please select a valid device."
   exit 1
 fi
 
@@ -98,7 +98,7 @@ if [ -z "$LUKS_KEYSLOT" ]; then
   exit 1
 fi
 
-printf '%s\n' "WARNING: This script will utilize LUKS keyslot \"$LUKS_KEYSLOT\" on device \"$YKFDE_LUKS_DEV\".  If this is not what you intended, please abort."
+printf '%s\n' "WARNING: This script will utilize LUKS keyslot '$LUKS_KEYSLOT' on device '$YKFDE_LUKS_DEV'.  If this is not what you intended, please abort."
 
 [ -z "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE_PASSWORD_NEEDED=1
 [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
@@ -124,7 +124,7 @@ if [ -z "$YKFDE_CHALLENGE" ]; then
 fi
 
 echo "   Remember to touch the device if necessary."
-[ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"'..."
+[ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
 # we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
 set +e
 YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
@@ -152,10 +152,10 @@ if [ "$DBG" ]; then read -r YKFDE_OLD_PASSPHRASE; else read -r -s YKFDE_OLD_PASS
 if [ "$YKFDE_PASSPHRASE" ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
   if [ "$CHANGE_KEYSLOT" ]; then
-    [ "$DBG" ] && printf '%s\n' " > Changing LUKS passphrase with 'cryptsetup --key-slot=\"$LUKS_KEYSLOT\" luksChangeKey \"$YKFDE_LUKS_DEV\"'..." || echo " > Changing LUKS passphrase with 'cryptsetup'..."
+    [ "$DBG" ] && printf '%s\n' " > Changing LUKS passphrase with 'cryptsetup --key-slot=$LUKS_KEYSLOT luksChangeKey $YKFDE_LUKS_DEV'..." || echo " > Changing LUKS passphrase with 'cryptsetup'..."
     printf '%s\n' "$YKFDE_OLD_PASSPHRASE" "$YKFDE_PASSPHRASE" "$YKFDE_PASSPHRASE" | cryptsetup --key-slot="$LUKS_KEYSLOT" luksChangeKey "$YKFDE_LUKS_DEV" 2>&1
   else
-    [ "$DBG" ] && printf '%s\n' " > Adding new LUKS passphrase with 'cryptsetup --key-slot=\"$LUKS_KEYSLOT\" luksAddKey \"$YKFDE_LUKS_DEV\"'..." || echo " > Adding new LUKS passphrase with 'cryptsetup'..."
+    [ "$DBG" ] && printf '%s\n' " > Adding new LUKS passphrase with 'cryptsetup --key-slot=$LUKS_KEYSLOT luksAddKey $YKFDE_LUKS_DEV'..." || echo " > Adding new LUKS passphrase with 'cryptsetup'..."
     printf '%s\n' "$YKFDE_OLD_PASSPHRASE" "$YKFDE_PASSPHRASE" "$YKFDE_PASSPHRASE" | cryptsetup --key-slot="$LUKS_KEYSLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1
   fi
 else

@@ -18,10 +18,10 @@ else
 fi
 
 YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
-[ "${DBG:-}" ] && printf '%s\n' " > YubiKey slot status (ykinfo -q -\"$YKFDE_CHALLENGE_SLOT\"): \"$YKFDE_SLOT_CHECK\""
+[ "${DBG:-}" ] && printf '%s\n' " > YubiKey slot status 'ykinfo -q -$YKFDE_CHALLENGE_SLOT': $YKFDE_SLOT_CHECK"
 
 if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
-  printf '%s\n' "ERROR: Chosen YubiKey slot \"$YKFDE_CHALLENGE_SLOT\" isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+  printf '%s\n' "ERROR: Chosen YubiKey slot '$YKFDE_CHALLENGE_SLOT' isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
 
@@ -51,7 +51,7 @@ if [ -z "$YKFDE_CHALLENGE" ]; then
 fi
 
 echo "   Remember to touch the device if necessary."
-[ "${DBG:-}" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT \"$YKFDE_CHALLENGE\"'..."
+[ "${DBG:-}" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
 # we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
 set +e
 YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
