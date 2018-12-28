@@ -13,6 +13,7 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# shellcheck source=src/ykfde.conf
 . "$YKFDE_CONFIG_FILE"
 [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
 

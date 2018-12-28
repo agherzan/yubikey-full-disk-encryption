@@ -131,7 +131,7 @@ sudo mkinitcpio -P
 
 ## Format new LUKS encrypted volume using ykfde passphrase
 
-To format new *LUKS* encrypted volume, you can use [ykfde-format](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-format) script which is wrapper over `cryptsetup luksFormat` command, see `ykfde-format -h` for help:
+To format new *LUKS* encrypted volume, you can use [ykfde-format](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-format) script which is wrapper over `cryptsetup luksFormat` command:
 
 ```
 ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha512 /dev/<device>

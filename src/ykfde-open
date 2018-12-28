@@ -17,6 +17,7 @@ YKFDE_PASSPHRASE=""
 YKFDE_LUKS_OPTIONS=""
 
 if [ -r /etc/ykfde.conf ]; then
+  # shellcheck source=ykfde.conf
   . /etc/ykfde.conf
 else
   echo "WARNING: Can't access /etc/ykfde.conf. Falling back to defaults."

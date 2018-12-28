@@ -15,6 +15,7 @@ YKFDE_RESPONSE=""
 YKFDE_PASSPHRASE=""
 
 if [ -r /etc/ykfde.conf ]; then
+  # shellcheck source=ykfde.conf
   . /etc/ykfde.conf
 else
   echo "WARNING: Can't access /etc/ykfde.conf. Falling back to defaults."

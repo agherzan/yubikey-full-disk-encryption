@@ -1,4 +1,5 @@
 #!/usr/bin/ash
+# shellcheck shell=dash
 
 # set default values:
 DBG=""
@@ -22,6 +23,7 @@ run_hook() {
   [ "$DBG" ] && printf '%s\n' "$0:"
 
   [ "$DBG" ] && echo " > Reading YKFDE configuration file."
+  # shellcheck source=../ykfde.conf
   . "$YKFDE_CONFIG_FILE" || {
     ykfde_err 001 "Failed to read the YKFDE configuration file '$YKFDE_CONFIG_FILE'"
     return 1
@@ -118,7 +120,7 @@ ykfde_do_it() {
   fi
 
   [ "$DBG" ] && printf '%s\n' " > Passing '$_ykfde_passphrase' to 'cryptsetup'"
-  if [ "$ykfde_resume" ]; then
+  if [ "$YKFDE_RESUME" ]; then
     # shellcheck disable=SC2154
     [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksResume $cryptname'..." || echo " > Decrypting with 'cryptsetup'..."
     _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"

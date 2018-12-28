@@ -1,4 +1,5 @@
 #!/usr/bin/ash
+# shellcheck shell=dash
 
 cryptname="${1}"
 
@@ -15,10 +16,12 @@ sync
 echo mem >/sys/power/state
 
 # Resume root device
-ykfde_resume=1
+export YKFDE_RESUME=1
 
+# shellcheck source=/dev/null
 . /init_functions
 parse_cmdline </proc/cmdline
+# shellcheck source=hooks/ykfde
 . /hooks/ykfde
 run_hook
 
