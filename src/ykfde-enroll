@@ -6,11 +6,13 @@ set -euo pipefail
 YKFDE_LUKS_DEV=""
 LUKS_KEYSLOT=""
 CHANGE_KEYSLOT=""
+OLD_YUBIKEY=""
 DBG=""
 YKFDE_SLOT_CHECK=""
 YKFDE_CHALLENGE_SLOT="2"
 YKFDE_CHALLENGE_PASSWORD_NEEDED=""
 YKFDE_CHALLENGE=""
+YKFDE_OLD_CHALLENGE=""
 YKFDE_RESPONSE=""
 YKFDE_PASSPHRASE=""
 
@@ -21,7 +23,7 @@ else
   echo "WARNING: Can't access /etc/ykfde.conf. Falling back to defaults."
 fi
 
-while getopts ":d:s:cvh" opt; do
+while getopts ":d:s:ocvh" opt; do
   case "$opt" in
     d)
       YKFDE_LUKS_DEV="$OPTARG"
@@ -40,6 +42,10 @@ while getopts ":d:s:cvh" opt; do
       CHANGE_KEYSLOT=1
       echo "INFO: Changing existing LUKS keyslot"
       ;;
+    o)
+      OLD_YUBIKEY=1
+      echo "INFO: Using old YubiKey for passphrase"
+      ;;
     v)
       DBG=1
       echo "INFO: Debugging enabled"
@@ -49,6 +55,7 @@ while getopts ":d:s:cvh" opt; do
       echo " -d <device>   : select an existing device"
       echo " -s <slot>     : select the LUKS keyslot"
       echo " -c            : change an existing keyslot"
+      echo " -o            : use old YubiKey for passphrase"
       echo " -v            : show input/output in cleartext"
       echo
       exit 1
@@ -59,6 +66,7 @@ while getopts ":d:s:cvh" opt; do
       echo " -d <device>   : select an existing device"
       echo " -s <slot>     : select the LUKS keyslot"
       echo " -c            : change an existing keyslot"
+      echo " -o            : use old YubiKey for passphrase"
       echo " -v            : show input/output in cleartext"
       echo
       exit 1
@@ -146,9 +154,60 @@ if [ "$YKFDE_RESPONSE" ]; then
   fi
 fi
 
-echo "Please provide the old LUKS passphrase for the existing keyslot."
-printf " Enter passphrase: "
-if [ "$DBG" ]; then read -r YKFDE_OLD_PASSPHRASE; else read -r -s YKFDE_OLD_PASSPHRASE; fi
+if [ $OLD_YUBIKEY=1 ]
+then
+    echo "Please remove new YubiKey and insert old YubiKey for existing keyslot."
+
+    while [ -z "$YKFDE_OLD_CHALLENGE" ]; do
+      echo " > Please provide the old challenge."
+      printf "   Enter challenge: "
+      if [ "$DBG" ]; then read -r YKFDE_OLD_CHALLENGE; else read -r -s YKFDE_OLD_CHALLENGE; fi
+      printf "\\n > Please repeat the old challenge.\\n"
+      printf "   Enter challenge: "
+      if [ "$DBG" ]; then read -r YKFDE_OLD_CHALLENGE2; else read -r -s YKFDE_OLD_CHALLENGE2; fi
+      if [ "$YKFDE_OLD_CHALLENGE" != "$YKFDE_OLD_CHALLENGE2" ]; then
+        echo "WARNING: Challenges do not match. Try again."
+        YKFDE_OLD_CHALLENGE=""
+      fi
+      [ "$YKFDE_OLD_CHALLENGE" ] && YKFDE_OLD_CHALLENGE="$(printf %s "$YKFDE_OLD_CHALLENGE" | sha256sum | awk '{print $1}')"
+      # if /NOT/ DBG, we need to output \n here.
+      [ "$DBG" ] || echo
+    done
+
+    if [ -z "$YKFDE_OLD_CHALLENGE" ]; then
+      echo "ERROR: ykfde old challenge is empty. Operation aborted."
+      exit 1
+    fi
+
+    echo "   Remember to touch the old device if necessary."
+
+    if [ "$DBG" ]; then read -r YKFDE_OLD_PASSPHRASE; else read -r -s YKFDE_OLD_PASSPHRASE; fi
+
+    [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_OLD_CHALLENGE'..."
+    # we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
+    set +e
+    YKFDE_OLD_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_OLD_CHALLENGE" 2>/dev/null | tr -d '\n')"
+    set -e
+    if [ -z "$YKFDE_OLD_RESPONSE" ]; then
+      sleep 3
+      echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
+      YKFDE_OLD_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_OLD_CHALLENGE" | tr -d '\n')"
+    fi
+
+    [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_OLD_RESPONSE'"
+
+    if [ "$YKFDE_OLD_RESPONSE" ]; then
+      if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+        YKFDE_OLD_PASSPHRASE="$YKFDE_OLD_CHALLENGE$YKFDE_OLD_RESPONSE"
+      else
+        YKFDE_OLD_PASSPHRASE="$YKFDE_RESPONSE"
+      fi
+    fi
+else
+    echo "Please provide the old LUKS passphrase for the existing keyslot."
+    printf " Enter passphrase: "
+    if [ "$DBG" ]; then read -r YKFDE_OLD_PASSPHRASE; else read -r -s YKFDE_OLD_PASSPHRASE; fi
+fi
 
 if [ "$YKFDE_PASSPHRASE" ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
