@@ -25,7 +25,9 @@ There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](ht
    * [Usage](#usage)
       * [Format new LUKS encrypted volume using ykfde passphrase](#format-new-luks-encrypted-volume-using-ykfde-passphrase)
       * [Enroll ykfde passphrase to existing LUKS encrypted volume](#enroll-ykfde-passphrase-to-existing-luks-encrypted-volume)
+      * [Enroll new ykfde passphrase to existing YubiKey LUKS encrypted volume](#enroll-new-ykfde-passphrase-to-existing-yubikey-luks-encrypted-volume)
       * [Unlock LUKS encrypted volume protected by ykfde passphrase](#unlock-luks-encrypted-volume-protected-by-ykfde-passphrase)
+      * [Killing ykfde passphrase for existing LUKS encrypted volume](#killing-ykfde-passphrase-for-existing-luks-encrypted-volume)
       * [Enable ykfde initramfs hook](#enable-ykfde-initramfs-hook)
       * [Enable ykfde suspend service (experimental)](#enable-ykfde-suspend-service-experimental)
    * [License](#license)
@@ -128,6 +130,7 @@ sudo mkinitcpio -P
 
 
 # Usage
+You can list existing LUKS key slots with `cryptsetup luksDump /dev/<device>`.
 
 ## Format new LUKS encrypted volume using ykfde passphrase
 
@@ -146,6 +149,14 @@ ykfde-enroll -d /dev/<device> -s <keyslot_number>
 ```
 
 **Warning: having a weaker non-ykfde passphrase(s) on the same *LUKS* encrypted volume undermines the ykfde passphrase value as potential attacker will always try to break the weaker passphrase. Make sure the other  non-ykfde passphrases are similarly strong or remove them.**
+
+## Enroll new ykfde passphrase to existing YubiKey LUKS encrypted volume
+
+To enroll new ykfde passphrase to existing YubiKey *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
+
+```
+ykfde-enroll -d /dev/<device> -s <keyslot_number> -o
+```
 
 ## Unlock LUKS encrypted volume protected by ykfde passphrase
 
@@ -167,6 +178,14 @@ To print only the ykfde passphrase to the console without unlocking any volumes:
 
 ```
 ykfde-open -p
+```
+
+## Killing ykfde passphrase for existing LUKS encrypted volume
+
+To kill a ykfde passphrase for existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
+
+```
+ykfde-enroll -d /dev/<device> -s <keyslot_number> -k
 ```
 
 ## Enable ykfde initramfs hook
