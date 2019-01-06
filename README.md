@@ -180,6 +180,12 @@ To print only the ykfde passphrase to the console without unlocking any volumes:
 ykfde-open -p
 ```
 
+To test only a passphrase for a specific key slot:
+
+```
+ykfde-open -d /dev/<device> -s <keyslot_number> -t
+```
+
 ## Killing ykfde passphrase for existing LUKS encrypted volume
 
 To kill a ykfde passphrase for existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
