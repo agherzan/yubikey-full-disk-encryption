@@ -1,4 +1,4 @@
-pkgname=yubikey-full-disk-encryption
+pkgname=yubikey-full-disk-encryption-git
 pkgver=r82.a2843e1
 pkgrel=1
 pkgdesc='Use YubiKey to unlock a LUKS partition'
