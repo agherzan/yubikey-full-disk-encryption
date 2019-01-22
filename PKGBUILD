@@ -17,6 +17,6 @@ pkgver() {
 }
 
 package() {
-  cd "${pkgname}"
+  cd yubikey-full-disk-encryption-git
   make DESTDIR="${pkgdir}" install
 }
