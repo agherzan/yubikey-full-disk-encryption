@@ -75,16 +75,30 @@ This strong passphrase cannot be broken by brute force. To recreate it one would
 
 Keep in mind that the above doesn't protect you from physical tampering like *evil maid attack* and from *malware* running after you unlock and boot your system. Use security tools designed to prevent those attacks.
 
-# Install
+# Installation
 
-## Create and install package through pacman (recommended)
+## Installation from AUR
+
+You can use your AUR-Helper like [yay](https://aur.archlinux.org/packages/yay/) or so. More about AUR you'll find at the [ArchLinux-Wiki](https://wiki.archlinux.org/index.php/Arch_User_Repository).
+
+Download the package from AUR: [yubikey-full-disk-encryption-git](https://aur.archlinux.org/packages/yubikey-full-disk-encryption-git/), extract and installl package
+
+```
+wget https://aur.archlinux.org/cgit/aur.git/snapshot/yubikey-full-disk-encryption-git.tar.gz
+tar xf yubikey-full-disk-encryption-git.tar.gz
+makepkg -i
+```
+
+## Manual installation from github
+
+### Create and install package through pacman (recommended)
 
 ```
 wget https://raw.githubusercontent.com/agherzan/yubikey-full-disk-encryption/master/PKGBUILD
 makepkg -srci
 ```
 
-## Download and install manually
+### Download and install manually
 
 ```
 git clone https://github.com/agherzan/yubikey-full-disk-encryption.git
