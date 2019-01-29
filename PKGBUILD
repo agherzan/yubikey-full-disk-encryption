@@ -1,4 +1,5 @@
 pkgname=yubikey-full-disk-encryption-git
+_pkgname=yubikey-full-disk-encryption
 pkgver=r82.a2843e1
 pkgrel=1
 pkgdesc='Use YubiKey to unlock a LUKS partition'
@@ -12,11 +13,11 @@ source=('git+https://github.com/agherzan/yubikey-full-disk-encryption.git')
 sha256sums=('SKIP')
 
 pkgver() {
-  cd "${pkgname}"
+  cd "${_pkgname}"
   printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 package() {
-  cd "${pkgname}"
+  cd "${_pkgname}"
   make DESTDIR="${pkgdir}" install
 }
