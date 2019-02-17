@@ -3,6 +3,7 @@
 set -euo pipefail
 
 # sanitize environment
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 YKFDE_LUKS_DEV=""
 LUKS_KEYSLOT=""
 CHANGE_KEYSLOT=""

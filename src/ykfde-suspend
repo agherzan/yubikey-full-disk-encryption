@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 trap 'echo "Press ENTER to continue."; read dummy' ERR
 
 ################################################################################
