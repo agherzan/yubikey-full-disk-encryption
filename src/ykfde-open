@@ -137,12 +137,12 @@ echo "   Remember to touch the device if necessary."
 [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT '$YKFDE_CHALLENGE''..."
 # we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
 set +e
-YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" 2>/dev/null | tr -d '\n')"
+YKFDE_RESPONSE="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
 set -e
 if [ -z "$YKFDE_RESPONSE" ]; then
   sleep 3
   echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-  YKFDE_RESPONSE="$(ykchalresp -"$YKFDE_CHALLENGE_SLOT" "$YKFDE_CHALLENGE" | tr -d '\n')"
+  YKFDE_RESPONSE="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
 fi
 
 [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_RESPONSE'"
