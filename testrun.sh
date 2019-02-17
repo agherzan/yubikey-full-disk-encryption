@@ -33,7 +33,7 @@ fi
 umask 0077
 YKFDE_TMPFILE=""
 YKFDE_TMPFILE="$(mktemp /dev/shm/ykfde-XXXXXX)"
-truncate -s 10M "$YKFDE_TMPFILE"
+truncate -s 20M "$YKFDE_TMPFILE"
 
 cleanup() {
   rm -f "$YKFDE_TMPFILE"
