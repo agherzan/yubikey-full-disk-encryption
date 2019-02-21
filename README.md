@@ -85,13 +85,13 @@ The easiest way is to install package from [AUR](https://aur.archlinux.org/packa
 Install with [yay](https://github.com/Jguer/yay):
 
 ```
-yay -Syu yubikey-full-disk-encryption
+yay -Syu yubikey-full-disk-encryption-git
 ```
 
 Install with [trizen](https://github.com/trizen/trizen):
 
 ```
-trizen -Syu yubikey-full-disk-encryption
+trizen -Syu yubikey-full-disk-encryption-git
 ```
 
 ## From Github using 'makepkg'
