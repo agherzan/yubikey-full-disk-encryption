@@ -9,16 +9,17 @@ Be aware that this was only tested and intended for:
 
 There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](https://www.ubuntu.com/) based systems: [yubikey-luks](https://github.com/cornelinux/yubikey-luks)
 
-# Table of contents
+Table of Contents
+=================
 
    * [YubiKey Full Disk Encryption](#yubikey-full-disk-encryption)
-   * [Table of contents](#table-of-contents)
    * [Design](#design)
       * [Automatic mode with stored challenge (1FA)](#automatic-mode-with-stored-challenge-1fa)
       * [Manual mode with secret challenge (2FA)](#manual-mode-with-secret-challenge-2fa)
    * [Install](#install)
-      * [Create and install package through pacman (recommended)](#create-and-install-package-through-pacman-recommended)
-      * [Download and install manually](#download-and-install-manually)
+      * [From AUR](#from-aur)
+      * [From Github using 'makepkg'](#from-github-using-makepkg)
+      * [From Github using 'make'](#from-github-using-make)
    * [Configure](#configure)
       * [Configure HMAC-SHA1 Challenge-Response slot in YubiKey](#configure-hmac-sha1-challenge-response-slot-in-yubikey)
       * [Edit /etc/ykfde.conf file](#edit-etcykfdeconf-file)
@@ -77,21 +78,38 @@ Keep in mind that the above doesn't protect you from physical tampering like *ev
 
 # Install
 
-## Create and install package through pacman (recommended)
+## From AUR
+
+The easiest way is to install package from [AUR](https://aur.archlinux.org/packages/yubikey-full-disk-encryption-git/) using one of the [AUR helpers](https://wiki.archlinux.org/index.php/AUR_helpers).
+
+Install with [yay](https://github.com/Jguer/yay):
+
+```
+yay -Syu yubikey-full-disk-encryption
+```
+
+Install with [trizen](https://github.com/trizen/trizen):
+
+```
+trizen -Syu yubikey-full-disk-encryption
+```
+
+## From Github using 'makepkg'
 
 ```
 wget https://raw.githubusercontent.com/agherzan/yubikey-full-disk-encryption/master/PKGBUILD
 makepkg -srci
 ```
 
-## Download and install manually
+## From Github using 'make'
 
 ```
 git clone https://github.com/agherzan/yubikey-full-disk-encryption.git
+cd yubikey-full-disk-encryption
 sudo make install
 ```
 
-When doing manual installation you also need to install [yubikey-personalization](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization/) and [expect](https://www.archlinux.org/packages/extra/x86_64/expect/) packages.
+When installing by using `make` you also need to install [yubikey-personalization](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization/) and [expect](https://www.archlinux.org/packages/extra/x86_64/expect/) packages.
 
 # Configure
 
