@@ -76,7 +76,7 @@ run_dir "$SYSTEM_SLEEP_PATH" pre suspend
 MOUNT_OPTS="$(cryptdevice_mount_options "$CRYPTNAME")"
 if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == *barrier=0* ]]; then
   REMOUNT=1
-  mount -o remount,"$MOUNT_OPTS",barrier=0 /
+  mount -o remount,nobarrier "/dev/mapper/$CRYPTNAME"
 fi
 
 # Synchronize filesystems before luksSuspend
@@ -88,7 +88,7 @@ chroot . /ykfde-suspend "$CRYPTNAME"
 
 # Restore original mount options if necessary
 if ((REMOUNT)); then
-  mount -o remount,"$MOUNT_OPTS",barrier=1 /
+  mount -o remount,barrier "/dev/mapper/$CRYPTNAME"
 fi
 
 ! systemctl is-enabled -q systemd-journald.socket || systemctl start systemd-journald.socket
