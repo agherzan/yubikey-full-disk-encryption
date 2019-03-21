@@ -5,7 +5,7 @@ set -euo pipefail
 # sanitize environment
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 YKFDE_LUKS_DEV=""
-LUKS_KEYSLOT=""
+YKFDE_LUKS_KEYSLOT=""
 YKFDE_LUKS_NAME=""
 YKFDE_PRINT_ONLY=""
 YKFDE_MOUNT=""
@@ -17,7 +17,7 @@ YKFDE_CHALLENGE=""
 YKFDE_RESPONSE=""
 YKFDE_PASSPHRASE=""
 YKFDE_LUKS_OPTIONS=""
-TEST_PASSPHRASE=""
+YKFDE_TEST_PASSPHRASE=""
 
 if [ -r /etc/ykfde.conf ]; then
   # shellcheck source=ykfde.conf
@@ -34,7 +34,7 @@ while getopts ":d:s:n:pmtvh" opt; do
       ;;
     s)
       if [ "$OPTARG" -gt -8 ] && [ "$OPTARG" -lt 8 ]; then
-        LUKS_KEYSLOT="$OPTARG"
+        YKFDE_LUKS_KEYSLOT="$OPTARG"
         printf '%s\n' "INFO: Setting LUKS keyslot to '$OPTARG'."
       else
         printf '%s\n' "ERROR: Chosen LUKS keyslot '$OPTARG' is invalid. Please choose valid LUKS keyslot number between '0-7'."
@@ -54,7 +54,7 @@ while getopts ":d:s:n:pmtvh" opt; do
       echo "INFO: Mounting device"
       ;;
     t)
-      TEST_PASSPHRASE="--test-passphrase"
+      YKFDE_TEST_PASSPHRASE="--test-passphrase"
       echo "INFO: Testing LUKS passphrase"
       ;;
     v)
@@ -71,7 +71,7 @@ while getopts ":d:s:n:pmtvh" opt; do
       echo " -t            : test LUKS passphrase"
       echo " -v            : show input/output in cleartext"
       echo
-      exit 1
+      exit 0
       ;;
     \?)
       printf '%s\n' "Error: Invalid option: '-$OPTARG'" >&2
@@ -119,8 +119,8 @@ if [ -z "$YKFDE_PRINT_ONLY" ]; then
   printf '%s\n' "WARNING: This script will try to open the '$YKFDE_LUKS_NAME' LUKS encrypted volume on drive '$YKFDE_LUKS_DEV' . If this is not what you intended, please abort."
 fi
 
-if [ "$LUKS_KEYSLOT" ]; then
-  LUKS_KEYSLOT="--key-slot=$LUKS_KEYSLOT"
+if [ "$YKFDE_LUKS_KEYSLOT" ]; then
+  YKFDE_LUKS_KEYSLOT="--key-slot=$YKFDE_LUKS_KEYSLOT"
 fi
 
 [ -z "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE_PASSWORD_NEEDED=1
@@ -161,18 +161,18 @@ if [ "$YKFDE_PRINT_ONLY" ]; then
   exit 0
 fi
 
-if [ "$TEST_PASSPHRASE" ]; then
+if [ "$YKFDE_TEST_PASSPHRASE" ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
-  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $TEST_PASSPHRASE $YKFDE_LUKS_DEV $LUKS_KEYSLOT'..." || echo " > Decrypting with 'cryptsetup'..."
-  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$TEST_PASSPHRASE" "$YKFDE_LUKS_DEV" "$LUKS_KEYSLOT" 2>&1
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_TEST_PASSPHRASE $YKFDE_LUKS_DEV $YKFDE_LUKS_KEYSLOT'..." || echo " > Decrypting with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_TEST_PASSPHRASE" "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_KEYSLOT" 2>&1
   printf '%s\n' "   Device successfully opened"
   exit 0
 fi
 
 if [ "$(id -u)" -eq 0 ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
-  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS $LUKS_KEYSLOT'..." || echo " > Decrypting with 'cryptsetup'..."
-  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" "$LUKS_KEYSLOT" 2>&1
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS $YKFDE_LUKS_KEYSLOT'..." || echo " > Decrypting with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" "$YKFDE_LUKS_KEYSLOT" 2>&1
   printf '%s\n' "   Device successfully opened as '/dev/mapper/$YKFDE_LUKS_NAME'"
 elif [ ! -b "$YKFDE_LUKS_DEV" ]; then
   # udisks doesn't work with regular file based devies

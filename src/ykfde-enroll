@@ -5,9 +5,9 @@ set -euo pipefail
 # sanitize environment
 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 YKFDE_LUKS_DEV=""
-LUKS_KEYSLOT=""
-CHANGE_KEYSLOT=""
-OLD_YUBIKEY=""
+YKFDE_LUKS_KEYSLOT=""
+YKFDE_CHANGE_KEYSLOT=""
+YKFDE_OLD_YUBIKEY=""
 DBG=""
 YKFDE_SLOT_CHECK=""
 YKFDE_SLOT_KILL=""
@@ -35,7 +35,7 @@ while getopts ":d:s:ckovh" opt; do
       ;;
     s)
       if [ "$OPTARG" -gt -8 ] && [ "$OPTARG" -lt 8 ]; then
-        LUKS_KEYSLOT="$OPTARG"
+        YKFDE_LUKS_KEYSLOT="$OPTARG"
         printf '%s\n' "INFO: Setting LUKS keyslot to '$OPTARG'."
       else
         printf '%s\n' "ERROR: Chosen LUKS keyslot '$OPTARG' is invalid. Please choose valid LUKS keyslot number between '0-7'."
@@ -43,7 +43,7 @@ while getopts ":d:s:ckovh" opt; do
       fi
       ;;
     c)
-      CHANGE_KEYSLOT=1
+      YKFDE_CHANGE_KEYSLOT=1
       echo "INFO: Changing existing LUKS keyslot"
       ;;
     k)
@@ -51,7 +51,7 @@ while getopts ":d:s:ckovh" opt; do
       echo "WARNING: Killing existing LUKS keyslot. If it's the last configured keyslot, the device will be inaccessible!"
       ;;
     o)
-      OLD_YUBIKEY=1
+      YKFDE_OLD_YUBIKEY=1
       echo "INFO: Using old YubiKey for passphrase"
       ;;
     v)
@@ -67,7 +67,7 @@ while getopts ":d:s:ckovh" opt; do
       echo " -o            : use old YubiKey for passphrase"
       echo " -v            : show input/output in cleartext"
       echo
-      exit 1
+      exit 0
       ;;
     \?)
       printf '%s\n' "Invalid option: '-$OPTARG'" >&2
@@ -112,12 +112,12 @@ if ! cryptsetup isLuks "$YKFDE_LUKS_DEV"; then
   exit 1
 fi
 
-if [ -z "$LUKS_KEYSLOT" ]; then
+if [ -z "$YKFDE_LUKS_KEYSLOT" ]; then
   echo "ERROR: LUKS keyslot not selected. Please select LUKS keyslot using '-s' option, see 'ykfde-enroll -h' for help."
   exit 1
 fi
 
-printf '%s\n' "WARNING: This script will utilize LUKS keyslot '$LUKS_KEYSLOT' on device '$YKFDE_LUKS_DEV'.  If this is not what you intended, please abort."
+printf '%s\n' "WARNING: This script will utilize LUKS keyslot '$YKFDE_LUKS_KEYSLOT' on device '$YKFDE_LUKS_DEV'.  If this is not what you intended, please abort."
 
 [ -z "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE_PASSWORD_NEEDED=1
 [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
@@ -166,13 +166,13 @@ if [ "$YKFDE_RESPONSE" ]; then
 fi
 
 if [ "$YKFDE_SLOT_KILL" ]; then
-  [ "$DBG" ] && printf '%s\n' " > Killing with 'cryptsetup luksKillSlot $YKFDE_LUKS_DEV $LUKS_KEYSLOT'..." || echo " > Killing slot with 'cryptsetup'..."
-  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksKillSlot "$YKFDE_LUKS_DEV" "$LUKS_KEYSLOT" 2>&1
-  printf '%s\n' "   LUKS key slot $LUKS_KEYSLOT successfully killed"
+  [ "$DBG" ] && printf '%s\n' " > Killing with 'cryptsetup luksKillSlot $YKFDE_LUKS_DEV $YKFDE_LUKS_KEYSLOT'..." || echo " > Killing slot with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksKillSlot "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_KEYSLOT" 2>&1
+  printf '%s\n' "   LUKS key slot $YKFDE_LUKS_KEYSLOT successfully killed"
   exit 0
 fi
 
-if [ "$OLD_YUBIKEY" ]; then
+if [ "$YKFDE_OLD_YUBIKEY" ]; then
   echo "Please insert old YubiKey for existing keyslot."
 
   while [ -z "$YKFDE_OLD_CHALLENGE" ]; do
@@ -226,13 +226,13 @@ fi
 
 if [ "$YKFDE_PASSPHRASE" ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
-  if [ "$CHANGE_KEYSLOT" ]; then
-    [ "$DBG" ] && printf '%s\n' " > Changing LUKS passphrase with 'cryptsetup --key-slot=$LUKS_KEYSLOT luksChangeKey $YKFDE_LUKS_DEV'..." || echo " > Changing LUKS passphrase with 'cryptsetup'..."
-    printf '%s\n' "$YKFDE_OLD_PASSPHRASE" "$YKFDE_PASSPHRASE" "$YKFDE_PASSPHRASE" | cryptsetup --key-slot="$LUKS_KEYSLOT" luksChangeKey "$YKFDE_LUKS_DEV" 2>&1
-    printf '%s\n' "   LUKS passphrase for key slot $LUKS_KEYSLOT successfully changed"
+  if [ "$YKFDE_CHANGE_KEYSLOT" ]; then
+    [ "$DBG" ] && printf '%s\n' " > Changing LUKS passphrase with 'cryptsetup --key-slot=$YKFDE_LUKS_KEYSLOT luksChangeKey $YKFDE_LUKS_DEV'..." || echo " > Changing LUKS passphrase with 'cryptsetup'..."
+    printf '%s\n' "$YKFDE_OLD_PASSPHRASE" "$YKFDE_PASSPHRASE" "$YKFDE_PASSPHRASE" | cryptsetup --key-slot="$YKFDE_LUKS_KEYSLOT" luksChangeKey "$YKFDE_LUKS_DEV" 2>&1
+    printf '%s\n' "   LUKS passphrase for key slot $YKFDE_LUKS_KEYSLOT successfully changed"
   else
-    [ "$DBG" ] && printf '%s\n' " > Adding new LUKS passphrase with 'cryptsetup --key-slot=$LUKS_KEYSLOT luksAddKey $YKFDE_LUKS_DEV'..." || echo " > Adding new LUKS passphrase with 'cryptsetup'..."
-    printf '%s\n' "$YKFDE_OLD_PASSPHRASE" "$YKFDE_PASSPHRASE" "$YKFDE_PASSPHRASE" | cryptsetup --key-slot="$LUKS_KEYSLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1
+    [ "$DBG" ] && printf '%s\n' " > Adding new LUKS passphrase with 'cryptsetup --key-slot=$YKFDE_LUKS_KEYSLOT luksAddKey $YKFDE_LUKS_DEV'..." || echo " > Adding new LUKS passphrase with 'cryptsetup'..."
+    printf '%s\n' "$YKFDE_OLD_PASSPHRASE" "$YKFDE_PASSPHRASE" "$YKFDE_PASSPHRASE" | cryptsetup --key-slot="$YKFDE_LUKS_KEYSLOT" luksAddKey "$YKFDE_LUKS_DEV" 2>&1
     printf '%s\n' "   New LUKS passphrase successfully added"
   fi
 else
