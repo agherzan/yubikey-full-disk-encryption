@@ -13,6 +13,14 @@ build() {
     add_all_modules "/crypto/"
   fi
 
+  # serial drivers for nfc
+  add_all_modules "/drivers/tty/serial/"
+  add_all_modules "/drivers/usb/serial/"
+
+  # nfc challenge response
+  add_file "/etc/nfc/libnfc.conf"
+  add_binary "/usr/lib/initcpio/ykchalresp-nfc" "/usr/bin/ykchalresp-nfc"
+
   add_binary "cryptsetup"
   add_binary "dmsetup"
   add_file "/usr/lib/udev/rules.d/10-dm.rules"

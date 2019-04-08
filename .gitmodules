@@ -1,0 +1,3 @@
+[submodule "ykchalresp-nfc"]
+	path = ykchalresp-nfc
+	url = https://github.com/Frederick888/ykchalresp-nfc.git

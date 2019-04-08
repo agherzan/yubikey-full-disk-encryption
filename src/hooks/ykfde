@@ -4,6 +4,7 @@
 # set default values:
 DBG=""
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
+YKFDE_NFC="0"
 YKFDE_DISK_UUID=""
 YKFDE_LUKS_NAME=""
 YKFDE_LUKS_DEV=""
@@ -150,6 +151,8 @@ ykfde_challenge_response() {
   _yubikey_timeout_str=""
   local _yubikey_detected
   _yubikey_detected=""
+  local _yubikey_nfc_detected
+  _yubikey_nfc_detected=""
   local _ykfde_response
   _ykfde_response=""
   # to determine if a timeout occurred
@@ -169,14 +172,21 @@ ykfde_challenge_response() {
   _starttime="$(date +%s)"
   printf '%s\n' " > Waiting $_yubikey_timeout_str for YubiKey..."
 
-  while [ -z "$_yubikey_detected" ]; do
+  while [ -z "$_yubikey_detected" ] && [ -z "$_yubikey_nfc_detected" ]; do
     _endtime="$(date +%s)"
     _usedtime=$((_endtime - _starttime))
     [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykinfo -$YKFDE_CHALLENGE_SLOT': "
     _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"
     _rc=$?
     [ "$DBG" ] && printf '%s\n' "[$_rc] '$_tmp'"
-    [ "$_rc" -eq 0 ] && _yubikey_detected=1
+    if [ "$_rc" -eq 0 ]; then
+      _yubikey_detected=1
+    elif [ "$YKFDE_NFC" -ne 0 ]; then
+      [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykchalresp-nfc -n': "
+      _tmp="$(ykchalresp-nfc -n 2>&1)"
+      _rc=$?
+      [ "$_rc" -eq 0 ] && _yubikey_nfc_detected=1
+    fi
     if [ "$_yubikey_timeout" -eq -1 ] || [ "$_usedtime" -le "$_yubikey_timeout" ]; then
       sleep 0.5
     else
@@ -197,18 +207,34 @@ ykfde_challenge_response() {
     [ "$DBG" ] || echo
   done
 
-  echo "   Remember to touch the device if necessary."
-  [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
-  _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-  if [ -z "$_ykfde_response" ]; then
-    printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
+  if [ -n "$_yubikey_detected" ]; then
+    echo "   Remember to touch the device if necessary."
+    [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
     _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
+    if [ -z "$_ykfde_response" ]; then
+      printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
+      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
+    fi
+    if [ -z "$_ykfde_response" ]; then
+      printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
+      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
+    fi
+    [ "$DBG" ] && printf '%s\n' "   Received response: '$_ykfde_response'"
   fi
-  if [ -z "$_ykfde_response" ]; then
-    printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
-    _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
+  if [ -n "$_yubikey_nfc_detected" ]; then
+    echo "   Remember to touch the device if necessary."
+    [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp-nfc -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+    _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
+    if [ -z "$_ykfde_response" ]; then
+      printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
+      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
+    fi
+    if [ -z "$_ykfde_response" ]; then
+      printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
+      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
+    fi
+    [ "$DBG" ] && printf '%s\n' "   Received response: '$_ykfde_response'"
   fi
-  [ "$DBG" ] && printf '%s\n' "   Received response: '$_ykfde_response'"
 
   if [ "$_ykfde_response" ]; then
     if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
