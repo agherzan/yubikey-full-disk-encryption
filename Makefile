@@ -14,6 +14,7 @@ reinstall: ykchalresp-nfc/build/ykchalresp-nfc
 	install -Dm644 README.md "$(DESTDIR)/usr/share/doc/ykfde/README.md"
 
 ykchalresp-nfc/build/ykchalresp-nfc:
+	git submodule update --init ykchalresp-nfc
 	mkdir -p ykchalresp-nfc/build
 	cd ykchalresp-nfc/build && cmake .. -DCMAKE_BUILD_TYPE=Release && make
 
