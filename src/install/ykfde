@@ -30,7 +30,10 @@ build() {
     if [ -f "/etc/nfc/libnfc.conf" ]; then
       add_file "/etc/nfc/libnfc.conf"
     fi
-    add_binary "/usr/lib/initcpio/ykchalresp-nfc" "/usr/bin/ykchalresp-nfc"
+    add_binary "ykchalresp-nfc" || {
+      ykfde_err 001 "Failed to find ykchalresp-nfc (available from AUR)"
+      exit 1
+    }
   fi
 
   add_binary "cryptsetup"
