@@ -4,7 +4,7 @@
 # set default values:
 DBG=""
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
-YKFDE_NFC="0"
+YKFDE_NFC=""
 YKFDE_DISK_UUID=""
 YKFDE_LUKS_NAME=""
 YKFDE_LUKS_DEV=""
@@ -181,7 +181,7 @@ ykfde_challenge_response() {
     [ "$DBG" ] && printf '%s\n' "[$_rc] '$_tmp'"
     if [ "$_rc" -eq 0 ]; then
       _yubikey_detected=1
-    elif [ "$YKFDE_NFC" -ne 0 ]; then
+    elif [ "$YKFDE_NFC" ]; then
       [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykchalresp-nfc -n': "
       _tmp="$(ykchalresp-nfc -n 2>&1)"
       _rc=$?
@@ -207,7 +207,7 @@ ykfde_challenge_response() {
     [ "$DBG" ] || echo
   done
 
-  if [ -n "$_yubikey_detected" ]; then
+  if [ "$_yubikey_detected" ]; then
     echo "   Remember to touch the device if necessary."
     [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
     _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
