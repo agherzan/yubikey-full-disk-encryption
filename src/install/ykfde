@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
+YKFDE_CONFIG_FILE="/etc/ykfde.conf"
+YKFDE_NFC=""
+
 build() {
+  . "$YKFDE_CONFIG_FILE" || {
+    ykfde_err 001 "Failed to read the YKFDE configuration file '$YKFDE_CONFIG_FILE'"
+    exit 1
+  }
+
   local mod
 
   add_module "dm-crypt"
@@ -11,6 +19,21 @@ build() {
     done
   else
     add_all_modules "/crypto/"
+  fi
+
+  if [ "$YKFDE_NFC" ]; then
+    # serial drivers for nfc
+    add_all_modules "/drivers/tty/serial/"
+    add_all_modules "/drivers/usb/serial/"
+
+    # nfc challenge response
+    if [ -f "/etc/nfc/libnfc.conf" ]; then
+      add_file "/etc/nfc/libnfc.conf"
+    fi
+    add_binary "ykchalresp-nfc" || {
+      ykfde_err 001 "Failed to find ykchalresp-nfc (available from AUR)"
+      exit 1
+    }
   fi
 
   add_binary "cryptsetup"
@@ -33,6 +56,17 @@ build() {
   add_file "/usr/lib/ykfde-suspend/initramfs-suspend" "/ykfde-suspend" 755
 
   add_runscript
+}
+
+ykfde_err() {
+  local _rc
+  _rc="$?"
+  local code
+  code="$1"
+  local msg
+  msg="$2"
+  [ "$msg" ] && msg="ERROR $code [rc=$_rc]: $msg" || msg="ERROR $code [rc=$_rc]"
+  printf '\n%s\n\n' "$msg" #exit 1;
 }
 
 help() {
