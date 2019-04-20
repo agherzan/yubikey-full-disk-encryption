@@ -13,6 +13,7 @@ Table of Contents
 =================
 
    * [YubiKey Full Disk Encryption](#yubikey-full-disk-encryption)
+   * [Table of Contents](#table-of-contents)
    * [Design](#design)
       * [Automatic mode with stored challenge (1FA)](#automatic-mode-with-stored-challenge-1fa)
       * [Manual mode with secret challenge (2FA)](#manual-mode-with-secret-challenge-2fa)
@@ -26,10 +27,11 @@ Table of Contents
    * [Usage](#usage)
       * [Format new LUKS encrypted volume using ykfde passphrase](#format-new-luks-encrypted-volume-using-ykfde-passphrase)
       * [Enroll ykfde passphrase to existing LUKS encrypted volume](#enroll-ykfde-passphrase-to-existing-luks-encrypted-volume)
-      * [Enroll new ykfde passphrase to existing YubiKey LUKS encrypted volume](#enroll-new-ykfde-passphrase-to-existing-yubikey-luks-encrypted-volume)
+      * [Enroll new ykfde passphrase to existing LUKS encrypted volume protected by old ykfde passphrase](#enroll-new-ykfde-passphrase-to-existing-luks-encrypted-volume-protected-by-old-ykfde-passphrase)
       * [Unlock LUKS encrypted volume protected by ykfde passphrase](#unlock-luks-encrypted-volume-protected-by-ykfde-passphrase)
-      * [Killing ykfde passphrase for existing LUKS encrypted volume](#killing-ykfde-passphrase-for-existing-luks-encrypted-volume)
+      * [Kill ykfde passphrase for existing LUKS encrypted volume](#kill-ykfde-passphrase-for-existing-luks-encrypted-volume)
       * [Enable ykfde initramfs hook](#enable-ykfde-initramfs-hook)
+      * [Enable NFC support in ykfde initramfs hook (experimental)](#enable-nfc-support-in-ykfde-initramfs-hook-experimental)
       * [Enable ykfde suspend service (experimental)](#enable-ykfde-suspend-service-experimental)
    * [License](#license)
 
@@ -168,9 +170,9 @@ ykfde-enroll -d /dev/<device> -s <keyslot_number>
 
 **Warning: having a weaker non-ykfde passphrase(s) on the same *LUKS* encrypted volume undermines the ykfde passphrase value as potential attacker will always try to break the weaker passphrase. Make sure the other  non-ykfde passphrases are similarly strong or remove them.**
 
-## Enroll new ykfde passphrase to existing YubiKey LUKS encrypted volume
+## Enroll new ykfde passphrase to existing LUKS encrypted volume protected by old ykfde passphrase
 
-To enroll new ykfde passphrase to existing YubiKey *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
+To enroll new ykfde passphrase to existing *LUKS* encrypted volume protected by old ykfde passphrase you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
 
 ```
 ykfde-enroll -d /dev/<device> -s <keyslot_number> -o
@@ -204,7 +206,7 @@ To test only a passphrase for a specific key slot:
 ykfde-open -d /dev/<device> -s <keyslot_number> -t
 ```
 
-## Killing ykfde passphrase for existing LUKS encrypted volume
+## Kill ykfde passphrase for existing LUKS encrypted volume
 
 To kill a ykfde passphrase for existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
 
@@ -217,6 +219,18 @@ ykfde-enroll -d /dev/<device> -s <keyslot_number> -k
 **Warning: It's recommended to have already working [encrypted system setup](https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system) with `encrypt` hook and non-ykfde passphrase before starting to use `ykfde` hook with ykfde passphrase to avoid potential misconfigurations.**
 
 Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). Adding `ykfde` hook before `encrypt` hook will allow for a safe fallback in case of ykfde misconfiguration. You can remove `encrypt` hook later when you confim that everything is working correctly. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+
+```
+sudo mkinitcpio -P
+```
+
+Reboot and test your configuration.
+
+## Enable NFC support in ykfde initramfs hook (experimental)
+
+**Warning: Currently NFC support is implemented only in initramfs hook. All ykfde manipulations on booted system have to be done through USB.**
+
+NFC support is provided through [libnfc](https://www.archlinux.org/packages/community/x86_64/libnfc/) and [ykchalresp-nfc](https://aur.archlinux.org/packages/ykchalresp-nfc/) tools. Make sure you have both packages installed. Edit `/etc/ykfde.conf` and uncomment `YKFDE_NFC="1"`setting. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
 ```
 sudo mkinitcpio -P
