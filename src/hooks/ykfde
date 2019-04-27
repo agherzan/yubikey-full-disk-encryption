@@ -15,11 +15,14 @@ YKFDE_CHALLENGE_SLOT="2"
 YKFDE_CHALLENGE=""
 YKFDE_CHALLENGE_PASSWORD_NEEDED=""
 YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
+USE_PLYMOUTH="0"
 
 run_hook() {
   local _tmp
   _tmp=""
   local cryptargs cryptopt cryptoptions
+
+  [ -x /bin/plymouth ] && plymouth --ping && USE_PLYMOUTH=1
 
   [ "$DBG" ] && printf '%s\n' "$0:"
 
@@ -108,14 +111,19 @@ ykfde_do_it() {
   if [ -z "$_ykfde_passphrase" ]; then
     if [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
       printf " > Challenge-Response failed.\\n   Falling back to manual passphrase.\\n"
+      [ "$USE_PLYMOUTH" ] && plymouth display-message --text="Challenge-Response failed. Enter manual passphrase."
       [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
     else
       echo " > Passphrase needed to unlock device."
     fi
 
     printf "   Enter passphrase: "
-    # shellcheck disable=SC2169
-    if [ "$DBG" ]; then read -r _ykfde_passphrase; else read -r -s _ykfde_passphrase; fi
+    if [ "$USE_PLYMOUTH" ]; then
+      _ykfde_passphrase=$(plymouth ask-for-password --prompt="Enter passphrase" --dont-pause-progress);
+    else
+      # shellcheck disable=SC2169
+      if [ "$DBG" ]; then read -r _ykfde_passphrase; else read -r -s _ykfde_passphrase; fi
+    fi
     # if /NOT/ DBG, we need to output \n here.
     [ "$DBG" ] || echo
   fi
@@ -171,6 +179,7 @@ ykfde_challenge_response() {
 
   _starttime="$(date +%s)"
   printf '%s\n' " > Waiting $_yubikey_timeout_str for YubiKey..."
+  [ "$USE_PLYMOUTH" ] && plymouth display-message --text="Waiting $_yubikey_timeout_str for YubiKey..."
 
   while [ -z "$_yubikey_detected" ] && [ -z "$_yubikey_nfc_detected" ]; do
     _endtime="$(date +%s)"
@@ -201,7 +210,13 @@ ykfde_challenge_response() {
     echo " > Please provide the challenge."
     printf "   Enter challenge: "
     # shellcheck disable=SC2169
-    if [ "$DBG" ]; then read -r YKFDE_CHALLENGE; else read -r -s YKFDE_CHALLENGE; fi
+    if [ "$DBG" ]; then read -r YKFDE_CHALLENGE; else
+      if [ "$USE_PLYMOUTH" ]; then
+        YKFDE_CHALLENGE=$(plymouth ask-for-password --prompt="Enter challenge" --dont-pause-progress);
+      else
+        read -r -s YKFDE_CHALLENGE;
+      fi
+    fi
     YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
     # if /NOT/ DBG, we need to output \n here.
     [ "$DBG" ] || echo
