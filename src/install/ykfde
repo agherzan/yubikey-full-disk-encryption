@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
 YKFDE_NFC=""
@@ -54,6 +54,12 @@ build() {
   add_binary "printf"
   add_file "/etc/ykfde.conf" "/etc/ykfde.conf"
   add_file "/usr/lib/ykfde-suspend/initramfs-suspend" "/ykfde-suspend" 755
+
+  # plymouth support
+  if [ -f "/usr/lib/plymouth/label.so" ]; then add_binary "/usr/lib/plymouth/label.so"; fi
+  if [ -f "/usr/share/fonts/TTF/DejaVuSans.ttf" ]; then add_file "/usr/share/fonts/TTF/DejaVuSans.ttf"; fi
+  if [ -f "/etc/fonts/fonts.conf" ]; then add_file "/etc/fonts/fonts.conf"; fi
+  if [ -f "/etc/fonts/conf.d/60-latin.conf" ]; then add_file "/etc/fonts/conf.d/60-latin.conf"; fi
 
   add_runscript
 }

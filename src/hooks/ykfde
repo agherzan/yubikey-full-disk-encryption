@@ -15,18 +15,27 @@ YKFDE_CHALLENGE_SLOT="2"
 YKFDE_CHALLENGE=""
 YKFDE_CHALLENGE_PASSWORD_NEEDED=""
 YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
-USE_PLYMOUTH="0"
+YKFDE_USE_PLYMOUTH=""
+
+message() {
+  if [ "$YKFDE_USE_PLYMOUTH" ]; then
+    plymouth display-message --text="$*"
+  else
+    echo "$@" >&2
+  fi
+  return 0
+}
 
 run_hook() {
   local _tmp
   _tmp=""
   local cryptargs cryptopt cryptoptions
 
-  [ -x /bin/plymouth ] && plymouth --ping && USE_PLYMOUTH=1
+  [ -x /bin/plymouth ] && plymouth --ping && YKFDE_USE_PLYMOUTH=1
 
-  [ "$DBG" ] && printf '%s\n' "$0:"
+  [ "$DBG" ] && message "$0:"
 
-  [ "$DBG" ] && echo " > Reading YKFDE configuration file."
+  [ "$DBG" ] && message " > Reading YKFDE configuration file."
   # shellcheck source=../ykfde.conf
   . "$YKFDE_CONFIG_FILE" || {
     ykfde_err 001 "Failed to read the YKFDE configuration file '$YKFDE_CONFIG_FILE'"
@@ -68,13 +77,13 @@ EOF
     return 1
   }
 
-  [ "$DBG" ] && echo " > modprobing dm-crypt"
+  [ "$DBG" ] && message " > modprobing dm-crypt"
   _tmp="$(modprobe -a -q dm-crypt >/dev/null 2>&1)"
 
   local trial_nr
   trial_nr=1
   while [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ]; do
-    printf '%s\n' "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $YKFDE_LUKS_DEV"
+    message "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $YKFDE_LUKS_DEV"
     ykfde_do_it && return 0
     trial_nr=$((trial_nr + 1))
   done
@@ -92,7 +101,7 @@ ykfde_err() {
   local msg
   msg="$2"
   [ "$msg" ] && msg="ERROR $code [rc=$_rc]: $msg" || msg="ERROR $code [rc=$_rc]"
-  printf '\n%s\n\n' "$msg" #exit 1;
+  message "$msg" #exit 1;
 }
 
 # assemble passphrase and run 'cryptsetup luksOpen'
@@ -110,16 +119,15 @@ ykfde_do_it() {
 
   if [ -z "$_ykfde_passphrase" ]; then
     if [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-      printf " > Challenge-Response failed.\\n   Falling back to manual passphrase.\\n"
-      [ "$USE_PLYMOUTH" ] && plymouth display-message --text="Challenge-Response failed. Enter manual passphrase."
-      [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && echo "   Press ENTER to skip and retry Challenge-Response."
+      message " > Challenge-Response failed. Falling back to manual passphrase."
+      [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && message "   Press ENTER to skip and retry Challenge-Response."
     else
-      echo " > Passphrase needed to unlock device."
+      message " > Passphrase needed to unlock device."
     fi
 
     printf "   Enter passphrase: "
-    if [ "$USE_PLYMOUTH" ]; then
-      _ykfde_passphrase=$(plymouth ask-for-password --prompt="Enter passphrase" --dont-pause-progress);
+    if [ "$YKFDE_USE_PLYMOUTH" ]; then
+      _ykfde_passphrase="$(plymouth ask-for-password --prompt="Enter passphrase" --dont-pause-progress)"
     else
       # shellcheck disable=SC2169
       if [ "$DBG" ]; then read -r _ykfde_passphrase; else read -r -s _ykfde_passphrase; fi
@@ -128,25 +136,25 @@ ykfde_do_it() {
     [ "$DBG" ] || echo
   fi
 
-  [ "$DBG" ] && printf '%s\n' " > Passing '$_ykfde_passphrase' to 'cryptsetup'"
+  [ "$DBG" ] && message " > Passing '$_ykfde_passphrase' to 'cryptsetup'"
   if [ "$YKFDE_RESUME" ]; then
     # shellcheck disable=SC2154
-    [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksResume $cryptname'..." || echo " > Decrypting with 'cryptsetup'..."
+    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksResume $cryptname'..."; else message " > Decrypting with 'cryptsetup'..."; fi
     _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
   else
-    [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS'..." || echo " > Decrypting with 'cryptsetup'..."
+    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS'..."; else message " > Decrypting with 'cryptsetup'..."; fi
     _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
   fi
   _rc=$?
 
   if [ "$_rc" -eq 0 ]; then
-    echo "   Decryption was successful."
+    message "   Decryption was successful."
     if [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" ] && [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" -gt 0 ]; then
-      [ "$DBG" ] && printf '%s\n' " > Making $YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP sleep."
+      [ "$DBG" ] && message " > Making $YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP sleep."
       sleep "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP"
     fi
   else
-    printf '%s\n' "   FAILED! [$_rc] $_tmp"
+    message "   FAILED! [$_rc] $_tmp"
   fi
 
   return "$_rc"
@@ -178,20 +186,19 @@ ykfde_challenge_response() {
   [ "$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT" -gt 0 ] && _yubikey_timeout_str="$YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT seconds"
 
   _starttime="$(date +%s)"
-  printf '%s\n' " > Waiting $_yubikey_timeout_str for YubiKey..."
-  [ "$USE_PLYMOUTH" ] && plymouth display-message --text="Waiting $_yubikey_timeout_str for YubiKey..."
+  message " > Waiting $_yubikey_timeout_str for YubiKey..."
 
   while [ -z "$_yubikey_detected" ] && [ -z "$_yubikey_nfc_detected" ]; do
     _endtime="$(date +%s)"
     _usedtime=$((_endtime - _starttime))
-    [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykinfo -$YKFDE_CHALLENGE_SLOT': "
+    [ "$DBG" ] && message "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykinfo -$YKFDE_CHALLENGE_SLOT': "
     _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"
     _rc=$?
-    [ "$DBG" ] && printf '%s\n' "[$_rc] '$_tmp'"
+    [ "$DBG" ] && message "[$_rc] '$_tmp'"
     if [ "$_rc" -eq 0 ]; then
       _yubikey_detected=1
     elif [ "$YKFDE_NFC" ]; then
-      [ "$DBG" ] && printf %s "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykchalresp-nfc -n': "
+      [ "$DBG" ] && message "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykchalresp-nfc -n': "
       _tmp="$(ykchalresp-nfc -n 2>&1)"
       _rc=$?
       [ "$_rc" -eq 0 ] && _yubikey_nfc_detected=1
@@ -199,7 +206,7 @@ ykfde_challenge_response() {
     if [ "$_yubikey_timeout" -eq -1 ] || [ "$_usedtime" -le "$_yubikey_timeout" ]; then
       sleep 0.5
     else
-      echo "    Timeout - Challenge-Response aborted."
+      message "    Timeout - Challenge-Response aborted."
       # timeout
       return 1
     fi
@@ -207,15 +214,15 @@ ykfde_challenge_response() {
 
   [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
   while [ -z "$YKFDE_CHALLENGE" ]; do
-    echo " > Please provide the challenge."
+    message " > Please provide the challenge."
     printf "   Enter challenge: "
     # shellcheck disable=SC2169
-    if [ "$DBG" ]; then read -r YKFDE_CHALLENGE; else
-      if [ "$USE_PLYMOUTH" ]; then
-        YKFDE_CHALLENGE=$(plymouth ask-for-password --prompt="Enter challenge" --dont-pause-progress);
-      else
-        read -r -s YKFDE_CHALLENGE;
-      fi
+    if [ "$YKFDE_USE_PLYMOUTH" ]; then
+      YKFDE_CHALLENGE="$(plymouth ask-for-password --prompt="Enter challenge" --dont-pause-progress)"
+    elif [ "$DBG" ]; then
+      read -r YKFDE_CHALLENGE
+    else
+      read -r -s YKFDE_CHALLENGE
     fi
     YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
     # if /NOT/ DBG, we need to output \n here.
@@ -223,32 +230,32 @@ ykfde_challenge_response() {
   done
 
   if [ "$_yubikey_detected" ]; then
-    echo "   Remember to touch the device if necessary."
-    [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+    message "   Remember to touch the device if necessary."
+    [ "$DBG" ] && message "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
     _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
     if [ -z "$_ykfde_response" ]; then
-      printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
+      message "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
       _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
     fi
     if [ -z "$_ykfde_response" ]; then
-      printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
+      message "   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary."
       _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
     fi
-    [ "$DBG" ] && printf '%s\n' "   Received response: '$_ykfde_response'"
+    [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
   fi
   if [ -n "$_yubikey_nfc_detected" ]; then
-    echo "   Remember to touch the device if necessary."
-    [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp-nfc -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+    message "   Remember to touch the device if necessary."
+    [ "$DBG" ] && message "   Running: 'ykchalresp-nfc -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
     _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
     if [ -z "$_ykfde_response" ]; then
-      printf "\\n   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary.\\n"
+      message "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
       _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
     fi
     if [ -z "$_ykfde_response" ]; then
-      printf "\\n   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary.\\n"
+      message "   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary."
       _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
     fi
-    [ "$DBG" ] && printf '%s\n' "   Received response: '$_ykfde_response'"
+    [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
   fi
 
   if [ "$_ykfde_response" ]; then
