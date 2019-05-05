@@ -230,32 +230,21 @@ ykfde_challenge_response() {
   done
 
   if [ "$_yubikey_detected" ]; then
-    message "   Remember to touch the device if necessary."
-    [ "$DBG" ] && message "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
-    _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-    if [ -z "$_ykfde_response" ]; then
-      message "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-    fi
-    if [ -z "$_ykfde_response" ]; then
-      message "   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary."
-      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-    fi
-    [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
+    while [ -z "$_ykfde_response" ]; do
+      [ "$DBG" ] && message "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+      message "   Remember to touch the device if necessary."
+      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')"
+      [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
+    done
   fi
+
   if [ -n "$_yubikey_nfc_detected" ]; then
-    message "   Remember to touch the device if necessary."
-    [ "$DBG" ] && message "   Running: 'ykchalresp-nfc -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
-    _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
-    if [ -z "$_ykfde_response" ]; then
-      message "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
-    fi
-    if [ -z "$_ykfde_response" ]; then
-      message "   YubiKey did not provide a response - Initializing final attempt, touch the device if necessary."
-      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" 2>/dev/null | tr -d '\n')"
-    fi
-    [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
+    while [ -z "$_ykfde_response" ]; do
+      [ "$DBG" ] && message "   Running: 'ykchalresp-nfc -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+      message "   Remember to touch the device if necessary."
+      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" | tr -d '\n')"
+      [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
+    done
   fi
 
   if [ "$_ykfde_response" ]; then

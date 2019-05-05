@@ -70,7 +70,7 @@ while getopts ":d:s:ckovh" opt; do
       exit 0
       ;;
     \?)
-      printf '%s\n' "Invalid option: '-$OPTARG'" >&2
+      printf '%s\n' "ERROR: Invalid option: '-$OPTARG'" >&2
       echo
       echo " -d <device>   : select an existing device"
       echo " -s <slot>     : select the LUKS keyslot"
@@ -143,19 +143,12 @@ if [ -z "$YKFDE_CHALLENGE" ]; then
   exit 1
 fi
 
-echo "   Remember to touch the device if necessary."
-[ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
-# we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
-set +e
-YKFDE_RESPONSE="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-set -e
-if [ -z "$YKFDE_RESPONSE" ]; then
-  sleep 3
-  echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-  YKFDE_RESPONSE="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-fi
-
-[ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_RESPONSE'"
+while [ -z "$YKFDE_RESPONSE" ]; do
+  [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+  echo "   Remember to touch the device if necessary."
+  YKFDE_RESPONSE="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')" || true
+  [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_RESPONSE'"
+done
 
 if [ "$YKFDE_RESPONSE" ]; then
   if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
@@ -196,20 +189,12 @@ if [ "$YKFDE_OLD_YUBIKEY" ]; then
     exit 1
   fi
 
-  echo "   Remember to touch the old device if necessary."
-
-  [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_OLD_CHALLENGE'..."
-  # we have to temporary disable '-e' shell option otherwise there would bo no chance for second attempt
-  set +e
-  YKFDE_OLD_RESPONSE="$(printf %s "$YKFDE_OLD_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-  set -e
-  if [ -z "$YKFDE_OLD_RESPONSE" ]; then
-    sleep 3
-    echo "   YubiKey did not provide a response - Initializing second attempt, touch the device if necessary."
-    YKFDE_OLD_RESPONSE="$(printf %s "$YKFDE_OLD_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null | tr -d '\n')"
-  fi
-
-  [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_OLD_RESPONSE'"
+  while [ -z "$YKFDE_OLD_RESPONSE" ]; do
+    [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_OLD_CHALLENGE'..."
+    echo "   Remember to touch the old device if necessary."
+    YKFDE_OLD_RESPONSE="$(printf %s "$YKFDE_OLD_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')" || true
+    [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_OLD_RESPONSE'"
+  done
 
   if [ "$YKFDE_OLD_RESPONSE" ]; then
     if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
