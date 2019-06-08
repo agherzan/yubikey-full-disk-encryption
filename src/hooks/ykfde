@@ -29,7 +29,7 @@ message() {
 run_hook() {
   local _tmp
   _tmp=""
-  local cryptargs cryptopt cryptoptions
+  local cryptopt cryptoptions
 
   [ -x /bin/plymouth ] && plymouth --ping && YKFDE_USE_PLYMOUTH=1
 
@@ -49,17 +49,18 @@ run_hook() {
       IFS=: read -r YKFDE_LUKS_DEV YKFDE_LUKS_NAME cryptoptions <<EOF
 $cryptdevice
 EOF
-      for cryptopt in ${cryptoptions//,/ }; do
-        case $cryptopt in
-          allow-discards)
-            cryptargs="$cryptargs --allow-discards"
-            ;;
-          *)
-            ykfde_err 002 "Encryption option '$cryptopt' not known, ignoring."
-            ;;
-        esac
-      done
-      YKFDE_LUKS_OPTIONS="$cryptargs"
+      if [ -z "$YKFDE_LUKS_OPTIONS" ]; then
+        for cryptopt in $(echo "$cryptoptions" | tr , ' '); do
+          case "$cryptopt" in
+            allow-discards)
+              YKFDE_LUKS_OPTIONS="--allow-discards"
+              ;;
+            *)
+              ykfde_err 002 "Encryption option '$cryptopt' not known, ignoring."
+              ;;
+          esac
+        done
+      fi
       YKFDE_LUKS_DEV="$(resolve_device "$YKFDE_LUKS_DEV")"
     else
       ykfde_err 003 "'$YKFDE_CONFIG_FILE' Please provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME or set cryptdevice kernel parameter."
