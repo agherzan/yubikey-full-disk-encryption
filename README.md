@@ -58,7 +58,7 @@ In *Secret mode* you will be asked to provide a custom *challenge* every time yo
 
 Example *challenge*: `123456abcdef`
 
-It will be hashed using the *SHA256* algorithm to achieve the maximum byte length (64) for any given *challenge*. The hash will be used as the final *challenge* provided for *YubiKey*.
+It will be hashed using the *SHA256* algorithm to achieve constant byte length (64) for any given *challenge*. It's also the maximum length that *YubiKey* can take as input. The hash will be used as the final *challenge* provided for *YubiKey*.
 
 Hashing function:
 
