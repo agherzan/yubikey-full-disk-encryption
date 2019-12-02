@@ -18,6 +18,7 @@ Table of Contents
       * [Automatic mode with stored challenge (1FA)](#automatic-mode-with-stored-challenge-1fa)
       * [Manual mode with secret challenge (2FA)](#manual-mode-with-secret-challenge-2fa)
    * [Install](#install)
+      * [From Arch Linux official repository](#from-arch-linux-official-repository)
       * [From AUR](#from-aur)
       * [From Github using 'makepkg'](#from-github-using-makepkg)
       * [From Github using 'make'](#from-github-using-make)
@@ -80,9 +81,17 @@ Keep in mind that the above doesn't protect you from physical tampering like *ev
 
 # Install
 
+## From Arch Linux official repository
+
+The easiest way is to install package from [official Arch Linux repository](https://www.archlinux.org/packages/community/any/yubikey-full-disk-encryption/).
+
+```
+sudo pacman -Syu yubikey-full-disk-encryption
+```
+
 ## From AUR
 
-The easiest way is to install package from [AUR](https://aur.archlinux.org/packages/yubikey-full-disk-encryption-git/) using one of the [AUR helpers](https://wiki.archlinux.org/index.php/AUR_helpers).
+Latest git snapshot can be installed from [AUR](https://aur.archlinux.org/packages/yubikey-full-disk-encryption-git/) using one of the [AUR helpers](https://wiki.archlinux.org/index.php/AUR_helpers).
 
 Install with [yay](https://github.com/Jguer/yay):
 
