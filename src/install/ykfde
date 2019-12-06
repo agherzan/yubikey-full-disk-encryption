@@ -41,6 +41,16 @@ build() {
   add_file "/etc/ykfde.conf" "/etc/ykfde.conf"
   add_file "/usr/lib/ykfde-suspend/initramfs-suspend" "/ykfde-suspend" 755
 
+  # ssh support
+  if [ "$YKFDE_SSH" ]; then
+      add_binary "nc"
+      add_binary "ss"
+      add_binary "/usr/share/yubikey-full-disk-encryption/utils/shells/ykfde_shell" "/bin/ykfde_shell"
+
+      echo 'root:x:0:0:root:/root:/bin/ykfde_shell' > "${BUILDROOT}"/etc/passwd
+      echo '/bin/ykfde_shell' > "${BUILDROOT}"/etc/shells
+  fi
+
   # nfc support
   if [ "$YKFDE_NFC" ]; then
     # serial drivers for nfc
