@@ -124,7 +124,6 @@ if [ "$YKFDE_LUKS_KEYSLOT" ]; then
 fi
 
 [ -z "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE_PASSWORD_NEEDED=1
-[ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
 
 while [ -z "$YKFDE_CHALLENGE" ]; do
   echo " > Please provide the challenge."
