@@ -31,7 +31,7 @@ run_hook() {
   _tmp=""
   local cryptopt cryptoptions
 
-  [ -x /bin/plymouth ] && plymouth --ping && YKFDE_USE_PLYMOUTH=1
+  [ -x /bin/plymouth ] && [ "$splash" ] && plymouth --ping && YKFDE_USE_PLYMOUTH=1
 
   [ "$DBG" ] && message "$0:"
 
