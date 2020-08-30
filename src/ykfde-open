@@ -89,6 +89,8 @@ while getopts ":d:s:n:pmtvh" opt; do
   esac
 done
 
+shift $((OPTIND -1))
+
 YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
 [ "$DBG" ] && printf '%s\n' " > YubiKey slot status 'ykinfo -q -$YKFDE_CHALLENGE_SLOT': $YKFDE_SLOT_CHECK"
 
@@ -107,7 +109,7 @@ if [ -z "$YKFDE_PRINT_ONLY" ]; then
     exit 1
   fi
   if [ "$(id -u)" -eq 0 ]; then
-    if ! cryptsetup isLuks "$YKFDE_LUKS_DEV"; then
+    if ! cryptsetup isLuks "$YKFDE_LUKS_DEV" "$@"; then
       printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' isn't a LUKS encrypted volume. Please select a valid device."
       exit 1
     fi
@@ -157,16 +159,16 @@ fi
 
 if [ "$YKFDE_TEST_PASSPHRASE" ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
-  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_TEST_PASSPHRASE $YKFDE_LUKS_DEV $YKFDE_LUKS_KEYSLOT'..." || echo " > Decrypting with 'cryptsetup'..."
-  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_TEST_PASSPHRASE" "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_KEYSLOT" 2>&1
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_TEST_PASSPHRASE $YKFDE_LUKS_DEV $YKFDE_LUKS_KEYSLOT $@'..." || echo " > Decrypting with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_TEST_PASSPHRASE" "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_KEYSLOT" "@" 2>&1
   printf '%s\n' "   Device successfully opened"
   exit 0
 fi
 
 if [ "$(id -u)" -eq 0 ]; then
   [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
-  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS $YKFDE_LUKS_KEYSLOT'..." || echo " > Decrypting with 'cryptsetup'..."
-  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" "$YKFDE_LUKS_KEYSLOT" 2>&1
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS $YKFDE_LUKS_KEYSLOT $@'..." || echo " > Decrypting with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" "$YKFDE_LUKS_KEYSLOT" "$@" 2>&1
   printf '%s\n' "   Device successfully opened as '/dev/mapper/$YKFDE_LUKS_NAME'"
 elif [ ! -b "$YKFDE_LUKS_DEV" ]; then
   # udisks doesn't work with regular file based devies
