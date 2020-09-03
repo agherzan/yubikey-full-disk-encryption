@@ -91,7 +91,7 @@ while getopts ":d:s:n:pmtvh" opt; do
   esac
 done
 
-shift "$((OPTIND -1))"
+shift "$((OPTIND - 1))"
 
 YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
 [ "$DBG" ] && printf '%s\n' " > YubiKey slot status 'ykinfo -q -$YKFDE_CHALLENGE_SLOT': $YKFDE_SLOT_CHECK"
