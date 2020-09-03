@@ -215,6 +215,12 @@ To test only a passphrase for a specific key slot:
 ykfde-open -d /dev/<device> -s <keyslot_number> -t
 ```
 
+To use optional parameters, example, use an external luks header:
+
+```
+ykfde-open -d /dev/<device> -- --header /mnt/luks-header.img
+```
+
 ## Kill ykfde passphrase for existing LUKS encrypted volume
 
 To kill a ykfde passphrase for existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
