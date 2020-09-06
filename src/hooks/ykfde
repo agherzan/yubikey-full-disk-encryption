@@ -9,6 +9,7 @@ YKFDE_DISK_UUID=""
 YKFDE_LUKS_NAME=""
 YKFDE_LUKS_DEV=""
 YKFDE_LUKS_OPTIONS=""
+YKFDE_LUKS_HEADER=""
 YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT="30"
 YKFDE_CRYPTSETUP_TRIALS="5"
 YKFDE_CHALLENGE_SLOT="2"
@@ -72,6 +73,7 @@ EOF
   [ -z "$YKFDE_LUKS_DEV" ] && YKFDE_LUKS_DEV="/dev/disk/by-uuid/$YKFDE_DISK_UUID"
   [ "$YKFDE_CRYPTSETUP_TRIALS" -lt 1 ] && YKFDE_CRYPTSETUP_TRIALS="5"
   [ "$YKFDE_CHALLENGE_SLOT" -lt 1 ] || [ "$YKFDE_CHALLENGE_SLOT" -gt 2 ] && YKFDE_CHALLENGE_SLOT="2"
+  [ -n "$YKFDE_LUKS_HEADER" ] && YKFDE_LUKS_HEADER="--header=$YKFDE_LUKS_HEADER"
 
   [ -e "$YKFDE_LUKS_DEV" ] || {
     ykfde_err 004 "YKFDE cannot find LUKS device '$YKFDE_LUKS_DEV'.\\nPlease check YKFDE_DISK_UUID ($YKFDE_DISK_UUID) and/or YKFDE_LUKS_DEV variable(s) in '$YKFDE_CONFIG_FILE'."
@@ -140,11 +142,11 @@ ykfde_do_it() {
   [ "$DBG" ] && message " > Passing '$_ykfde_passphrase' to 'cryptsetup'"
   if [ "$YKFDE_RESUME" ]; then
     # shellcheck disable=SC2154
-    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksResume $cryptname $YKFDE_LUKS_OPTIONS'..."; else message " > Decrypting with 'cryptsetup'..."; fi
-    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksResume "$cryptname" $YKFDE_LUKS_OPTIONS 2>&1)"
+    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksResume $cryptname $YKFDE_LUKS_HEADER'..."; else message " > Decrypting with 'cryptsetup'..."; fi
+    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksResume "$cryptname" $YKFDE_LUKS_HEADER 2>&1)"
   else
-    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS'..."; else message " > Decrypting with 'cryptsetup'..."; fi
-    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" $YKFDE_LUKS_OPTIONS 2>&1)"
+    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_HEADER $YKFDE_LUKS_OPTIONS'..."; else message " > Decrypting with 'cryptsetup'..."; fi
+    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" $YKFDE_LUKS_HEADER $YKFDE_LUKS_OPTIONS 2>&1)"
   fi
   _rc=$?
 
