@@ -4,6 +4,7 @@
 # set default values:
 DBG=""
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
+YKFDE_SSH=""
 YKFDE_NFC=""
 YKFDE_DISK_UUID=""
 YKFDE_LUKS_NAME=""
@@ -149,6 +150,8 @@ ykfde_do_it() {
   _rc=$?
 
   if [ "$_rc" -eq 0 ]; then
+    touch /.done
+    killall dropbear
     message "   Decryption was successful."
     if [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" ] && [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" -gt 0 ]; then
       [ "$DBG" ] && message " > Making $YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP sleep."
@@ -189,7 +192,7 @@ ykfde_challenge_response() {
   _starttime="$(date +%s)"
   message " > Waiting $_yubikey_timeout_str for YubiKey..."
 
-  while [ -z "$_yubikey_detected" ] && [ -z "$_yubikey_nfc_detected" ]; do
+  while [ -z "$_yubikey_detected" ] && [ -z "$_yubikey_ssh_detected" ] && [ -z "$_yubikey_nfc_detected" ]; do
     _endtime="$(date +%s)"
     _usedtime=$((_endtime - _starttime))
     [ "$DBG" ] && message "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykinfo -$YKFDE_CHALLENGE_SLOT': "
@@ -198,6 +201,11 @@ ykfde_challenge_response() {
     [ "$DBG" ] && message "[$_rc] '$_tmp'"
     if [ "$_rc" -eq 0 ]; then
       _yubikey_detected=1
+    elif [ "$YKFDE_SSH" ]; then
+      ss -Htln
+      if [ -n "$(ss -Htln 'sport :9000')" ]; then
+        _yubikey_ssh_detected=1
+      fi
     elif [ "$YKFDE_NFC" ]; then
       [ "$DBG" ] && message "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykchalresp-nfc -n': "
       _tmp="$(ykchalresp-nfc -n 2>&1)"
@@ -236,6 +244,14 @@ ykfde_challenge_response() {
       message "   Remember to touch the device if necessary."
       _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')"
       [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
+    done
+  fi
+
+  if [ -n "$_yubikey_ssh_detected" ]; then
+    message "   Trying to perform challenge-response over SSH..."
+    while [ -z "$_ykfde_response" ]; do
+      sleep 0.5
+      _ykfde_response="$(printf '%s\n' "$YKFDE_CHALLENGE" | nc 127.0.0.1 9000 | tr -d '\n')"
     done
   fi
 

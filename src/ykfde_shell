@@ -1,0 +1,5 @@
+#!/bin/sh
+echo "Trying to unlock using YubiKey via SSH..."
+while [ ! -f /.done ]; do
+    sleep 0.5
+done
