@@ -197,7 +197,7 @@ As unprivileged user using udisksctl (recommended):
 ykfde-open -d /dev/<device>
 ```
 
-As root using cryptsetup (when udisks is not available):
+As root using cryptsetup (when [udisks2](https://www.archlinux.org/packages/extra/x86_64/udisks2/) or [expect](https://www.archlinux.org/packages/extra/x86_64/expect/) aren't available):
 
 ```
 ykfde-open -d /dev/<device> -n <volume_name>
