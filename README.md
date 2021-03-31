@@ -5,7 +5,7 @@ This project leverages a [YubiKey](https://wiki.archlinux.org/index.php/Yubikey)
 Be aware that this was only tested and intended for:
 
 * [Arch Linux](https://www.archlinux.org/) and its derivatives
-* [YubiKey 4](https://www.yubico.com/product/yubikey-4-series/)
+* [YubiKey (version 4 or later)](https://www.yubico.com/products/yubikey-5-overview/)
 
 There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](https://www.ubuntu.com/) based systems: [yubikey-luks](https://github.com/cornelinux/yubikey-luks)
 
