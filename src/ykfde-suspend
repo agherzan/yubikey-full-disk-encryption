@@ -73,10 +73,21 @@ run_dir "$SYSTEM_SLEEP_PATH" pre suspend
 # Journalled ext4 filesystems in kernel versions 3.11+ will block suspend if
 # mounted with `barrier=1`, which is the default. Temporarily remount with
 # `barrier=0` if this is true of the crypt fs.
-MOUNT_OPTS="$(cryptdevice_mount_options "$CRYPTNAME")"
-if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == *barrier=0* ]]; then
-  REMOUNT=1
-  mount -o remount,nobarrier "/dev/mapper/$CRYPTNAME"
+# When using LVM, all the ext4 subpartitions should be remounted with the barrier=0 option to prevent hanging
+if [[ "$(lsblk -drno FSTYPE /dev/mapper/"$CRYPTNAME")" == "LVM2_member" ]]; then
+  for part in $(lsblk -lno NAME /dev/mapper/"$CRYPTNAME" | sed '1d'); do
+    MOUNT_OPTS="$(cryptdevice_mount_options "$part")"
+    if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == *barrier=0* ]]; then
+      REMOUNT=1
+      mount -o remount,nobarrier "/dev/mapper/$part"
+    fi
+  done
+else
+  MOUNT_OPTS="$(cryptdevice_mount_options "$CRYPTNAME")"
+  if [[ "$MOUNT_OPTS" ]] && ! [[ "$MOUNT_OPTS" == *nobarrier* || "$MOUNT_OPTS" == *barrier=0* ]]; then
+    REMOUNT=1
+    mount -o remount,nobarrier "/dev/mapper/$CRYPTNAME"
+  fi
 fi
 
 # Synchronize filesystems before luksSuspend
@@ -88,7 +99,16 @@ chroot . /ykfde-suspend "$CRYPTNAME"
 
 # Restore original mount options if necessary
 if ((REMOUNT)); then
-  mount -o remount,barrier "/dev/mapper/$CRYPTNAME"
+  if [[ "$(lsblk -drno FSTYPE /dev/mapper/"$CRYPTNAME")" == "LVM2_member" ]]; then
+    for part in $(lsblk -lno NAME /dev/mapper/"$CRYPTNAME" | sed '1d'); do
+      MOUNT_OPTS="$(cryptdevice_mount_options "$part")"
+      if [[ "$MOUNT_OPTS" ]]; then
+        mount -o remount,barrier "/dev/mapper/$part"
+      fi
+    done
+  else
+    mount -o remount,barrier "/dev/mapper/$CRYPTNAME"
+  fi
 fi
 
 ! systemctl is-enabled -q systemd-journald.socket || systemctl start systemd-journald.socket
