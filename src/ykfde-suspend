@@ -29,7 +29,7 @@ run_dir() {
 umount_initramfs() {
   local p
   for p in "${BIND_PATHS[@]}"; do
-    ! mountpoint -q "$INITRAMFS_DIR$p" || umount "$INITRAMFS_DIR$p"
+    ! mountpoint -q "$INITRAMFS_DIR$p" || umount -l "$INITRAMFS_DIR$p"
   done
 }
 
