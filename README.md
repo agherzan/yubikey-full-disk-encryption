@@ -130,7 +130,7 @@ This command will enable *HMAC-SHA1 Challenge-Response* mode on a chosen slot an
 
 **Warning: choosing YubiKey slot already configured for *HMAC-SHA1 Challenge-Response* mode will overwrite secret key with the new one which means ykfde passphrases created with the old key will be unrecoverable.**
 
-You may instead enable *HMAC-SHA1 Challenge-Response* mode using graphical interface through [yubikey-personalization-gui](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization-gui/) package. It allows for customization of the secret key, creation of secret key backup and writing the same secret key to multpile YubiKeys which allows for using them interchangeably for creating same ykfde passphrases.
+You may instead enable *HMAC-SHA1 Challenge-Response* mode using graphical interface through [yubikey-personalization-gui](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization-gui/) package. It allows for customization of the secret key, creation of secret key backup and writing the same secret key to multiple YubiKeys which allows for using them interchangeably for creating same ykfde passphrases.
 
 ## Edit /etc/ykfde.conf file
 
