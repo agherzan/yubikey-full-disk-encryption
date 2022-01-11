@@ -1,0 +1,36 @@
+#! /usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# nothing to build
+
+override_dh_installsystemd:
+	dh_installsystemd -pykfde \
+		--no-enable --no-start --no-restart-after-upgrade --no-stop-on-upgrade \
+		ykfde-suspend.service
+
+override_dh_install:
+	dh_install
+	install -D -o root -g root -m755 ../src/hooks/ykfde debian/yubikey-full-disk-encryption/usr/share/initramfs-tools/hooks/ykfde
+	
+	# install -D -o root -g root -m755 ../src/key-script debian/yubikey-full-disk-encryption/usr/share/yubikey-full-disk-encryption/ykfde-keyscript
+	
+	install -D -o root -g root -m755 ../src/ykfde-open debian/ykfde/usr/bin/ykfde-open
+	
+	install -D -o root -g root -m755 ../src/ykfde-enroll debian/ykfde/usr/bin/ykfde-enroll
+	
+	install -D -o root -g root -m755 ../src/ykfde-format debian/ykfde/usr/bin/ykfde-format
+	
+	# install -D -o root -g root -m644 ../src/yubikey-luks-enroll.1 debian/ykfde/usr/man/man1/yubikey-luks-enroll.1
+	
+	install -D -o root -g root -m644 ../README.md debian/ykfde/usr/share/doc/ykfde/README.md
+	
+	install -D -o root -g root -m644 ../src/ykfde.conf debian/ykfde/etc/ykfde.conf
+	
+	install -D -o root -g root -m755 ../src/ykfde-suspend debian/ykfde/usr/lib/ykfde/yubikey-luks-suspend
+	
+	install -D -o root -g root -m755 ../src/initramfs-suspend debian/ykfde/usr/lib/ykfde/initramfs-suspend
+	
+	install -D -o root -g root -m644 ../src/ykfde-suspend.service debian/ykfde/lib/systemd/system/ykfde-suspend.service
