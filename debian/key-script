@@ -51,9 +51,7 @@ fi
 
 if [ "$check_yubikey_present" = "1" ]; then
     message "Accessing yubikey..."
-    #if [ "$HASH" = "1" ]; then
     PW=$(printf %s "$PW" | sha256sum | awk '{print $1}')
-    #fi
     R="$(printf %s "$PW" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- 2>/dev/null || true)"
     if [ "$R" ]; then
         message "Retrieved the response from the Yubikey"

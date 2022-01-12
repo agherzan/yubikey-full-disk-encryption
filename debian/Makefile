@@ -25,4 +25,4 @@ clean:
 	rm -fr DEBUILD
 	
 #test:
-#	./testrun.sh
+#	../src/testrun.sh

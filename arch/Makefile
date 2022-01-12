@@ -12,6 +12,6 @@ reinstall:
 	install -Dm755 ../src/ykfde-open "$(DESTDIR)/usr/bin/ykfde-open"
 	install -Dm644 ../README.md "$(DESTDIR)/usr/share/doc/ykfde/README.md"
 test:
-	./testrun.sh
+	../src/testrun.sh
 
 all: install
