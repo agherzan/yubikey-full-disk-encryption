@@ -1,0 +1,34 @@
+Format: 1.8
+Date: Tue, 11 Jan 2022 21:28:25 -0800
+Source: ykfde
+Binary: ykfde
+Architecture: source all
+Version: 0.1
+Distribution: UNRELEASED
+Urgency: medium
+Maintainer: Andrei Gherzan <https://github.com/agherzan>
+Changed-By: crispy-landslide <48504814+crispy-landslide@users.noreply.github.com>
+Description:
+ ykfde      - This project leverages a YubiKey HMAC-SHA1 Challenge-Response
+Changes:
+ ykfde (0.1) UNRELEASED; urgency=medium
+ .
+   * Added Debian/Ubuntu support
+Checksums-Sha1:
+ 8903200460a19b84d96b74576cc9c57aa4cd9e05 789 ykfde_0.1.dsc
+ e2c140d2c771a17b383edc362e9ec398ff2692d4 14121 ykfde_0.1.orig.tar.gz
+ eaa145143495e32579e2faab0beac5ce664d0823 1463 ykfde_0.1.diff.gz
+ ca95ac88d8b7163d94919f27d1ce5bdb1edc7bf1 13564 ykfde_0.1_all.deb
+ 0b5a244b3323bed5044c51ef362b1a83c36a04a2 5309 ykfde_0.1_amd64.buildinfo
+Checksums-Sha256:
+ 901570ed3da3f8d20dd83c722a3c3b93f3c1fa62a6b740c6b5e1a1929df89128 789 ykfde_0.1.dsc
+ 532afcc745f33a88369702a933911fbcee52f91b6b7ceb7d9bbeb43bf6193da6 14121 ykfde_0.1.orig.tar.gz
+ f393949e5dac05027b7135f6f06206f06c5462b0f56afd241d95cc900158aafe 1463 ykfde_0.1.diff.gz
+ adf4c43014d0969f0c3f149e0b6838d48d90ef2e6935bbd9a5bd581f1ed9d02d 13564 ykfde_0.1_all.deb
+ beaac1ca0e13c033ef62fc6c165af6452e1a14e54280aa30a347f4ea0b6696f7 5309 ykfde_0.1_amd64.buildinfo
+Files:
+ 3b4b788b9572ff0e9ed2bf586df00936 789 admin optional ykfde_0.1.dsc
+ b5ff19097aad01c168678bd7630c412f 14121 admin optional ykfde_0.1.orig.tar.gz
+ d3eaa050adf4cc317cb89b330ab7b38d 1463 admin optional ykfde_0.1.diff.gz
+ f012426015db8e7ec49c180b8f512281 13564 admin optional ykfde_0.1_all.deb
+ 92c7f90fd67e731823fac7e0a81d5403 5309 admin optional ykfde_0.1_amd64.buildinfo

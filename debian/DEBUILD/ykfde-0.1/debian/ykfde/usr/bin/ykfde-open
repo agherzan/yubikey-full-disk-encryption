@@ -1,0 +1,207 @@
+#!/bin/bash -p
+
+set -euo pipefail
+
+# sanitize environment
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+YKFDE_LUKS_DEV=""
+YKFDE_LUKS_KEYSLOT=""
+YKFDE_LUKS_NAME=""
+YKFDE_PRINT_ONLY=""
+YKFDE_MOUNT="0"
+DBG=""
+YKFDE_SLOT_CHECK=""
+YKFDE_CHALLENGE_SLOT="2"
+YKFDE_CHALLENGE_PASSWORD_NEEDED=""
+YKFDE_CHALLENGE=""
+YKFDE_RESPONSE=""
+YKFDE_PASSPHRASE=""
+YKFDE_LUKS_OPTIONS=""
+YKFDE_TEST_PASSPHRASE=""
+
+if [ -r /etc/ykfde.conf ]; then
+  # shellcheck source=ykfde.conf
+  . /etc/ykfde.conf
+else
+  echo "WARNING: Can't access /etc/ykfde.conf. Falling back to defaults."
+fi
+
+while getopts ":d:s:n:pmtvh" opt; do
+  case "$opt" in
+    d)
+      YKFDE_LUKS_DEV="$OPTARG"
+      printf '%s\n' "INFO: Setting device to '$OPTARG'."
+      ;;
+    s)
+      if [ "$OPTARG" -gt -8 ] && [ "$OPTARG" -lt 8 ]; then
+        YKFDE_LUKS_KEYSLOT="$OPTARG"
+        printf '%s\n' "INFO: Setting LUKS keyslot to '$OPTARG'."
+      else
+        printf '%s\n' "ERROR: Chosen LUKS keyslot '$OPTARG' is invalid. Please choose valid LUKS keyslot number between '0-7'."
+        exit 1
+      fi
+      ;;
+    n)
+      YKFDE_LUKS_NAME="$OPTARG"
+      printf '%s\n' "INFO: Setting name to '$OPTARG'."
+      ;;
+    p)
+      YKFDE_PRINT_ONLY=1
+      echo "INFO: Showing cleartext ykfde passphrase without unlocking"
+      ;;
+    m)
+      YKFDE_MOUNT=1
+      echo "INFO: Mounting device"
+      ;;
+    t)
+      YKFDE_TEST_PASSPHRASE="--test-passphrase"
+      echo "INFO: Testing LUKS passphrase"
+      ;;
+    v)
+      DBG=1
+      echo "INFO: Debugging enabled"
+      ;;
+    h)
+      echo
+      echo " -d <device>     : select an existing device"
+      echo " -s <slot>       : select the LUKS keyslot"
+      echo " -n <name>       : set the new encrypted volume name"
+      echo " -p              : show cleartext ykfde passphrase without unlocking"
+      echo " -m              : mount unlocked device (non root user only)"
+      echo " -t              : test LUKS passphrase"
+      echo " -v              : show input/output in cleartext"
+      echo " [ -- --params ] : pass optional cryptsetup luksOpen parameters"
+      echo
+      exit 0
+      ;;
+    \?)
+      printf '%s\n' "ERROR: Invalid option: '-$OPTARG'" >&2
+      echo
+      echo " -d <device>     : select an existing device"
+      echo " -s <slot>       : select the LUKS keyslot"
+      echo " -n <name>       : set the new encrypted volume name"
+      echo " -p              : show cleartext ykfde passphrase without unlocking"
+      echo " -m              : mount unlocked device (non root user only)"
+      echo " -t              : test LUKS passphrase"
+      echo " -v              : show input/output in cleartext"
+      echo " [ -- --params ] : pass optional cryptsetup luksOpen parameters"
+      echo
+      exit 1
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
+[ "$DBG" ] && printf '%s\n' " > YubiKey slot status 'ykinfo -q -$YKFDE_CHALLENGE_SLOT': $YKFDE_SLOT_CHECK"
+
+if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
+  printf '%s\n' "ERROR: Chosen YubiKey slot '$YKFDE_CHALLENGE_SLOT' isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
+  exit 1
+fi
+
+if [ -z "$YKFDE_PRINT_ONLY" ]; then
+  if [ -z "$YKFDE_LUKS_DEV" ]; then
+    echo "ERROR: Device not selected. Please select an existing device using '-d' option, see 'ykfde-open -h' for help."
+    exit 1
+  fi
+  if [ ! -e "$YKFDE_LUKS_DEV" ]; then
+    printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' doesn't exist. Please select an existing device."
+    exit 1
+  fi
+  if [ "$(id -u)" -eq 0 ]; then
+    if ! cryptsetup isLuks "$YKFDE_LUKS_DEV" "$@"; then
+      printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' isn't a LUKS encrypted volume. Please select a valid device."
+      exit 1
+    fi
+    if [ -z "$YKFDE_LUKS_NAME" ]; then
+      printf '%s\n' "ERROR: Please set the new encrypted volume name using '-n' option, see 'ykfde-open -h' for help."
+      exit 1
+    fi
+  fi
+  printf '%s\n' "WARNING: This script will try to open the '$YKFDE_LUKS_NAME' LUKS encrypted volume on drive '$YKFDE_LUKS_DEV' . If this is not what you intended, please abort."
+fi
+
+if [ "$YKFDE_LUKS_KEYSLOT" ]; then
+  YKFDE_LUKS_KEYSLOT="--key-slot=$YKFDE_LUKS_KEYSLOT"
+fi
+
+[ -z "$YKFDE_CHALLENGE" ] && YKFDE_CHALLENGE_PASSWORD_NEEDED=1
+[ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
+
+while [ -z "$YKFDE_CHALLENGE" ]; do
+  echo " > Please provide the challenge."
+  printf "   Enter challenge: "
+  if [ "$DBG" ]; then read -r YKFDE_CHALLENGE; else read -r -s YKFDE_CHALLENGE; fi
+  YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
+  # if /NOT/ DBG, we need to output \n here.
+  [ "$DBG" ] || echo
+done
+
+while [ -z "$YKFDE_RESPONSE" ]; do
+  [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+  echo "   Remember to touch the device if necessary."
+  YKFDE_RESPONSE="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')" || true
+  [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_RESPONSE'"
+done
+
+if [ "$YKFDE_RESPONSE" ]; then
+  if [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
+    YKFDE_PASSPHRASE="$YKFDE_CHALLENGE$YKFDE_RESPONSE"
+  else
+    YKFDE_PASSPHRASE="$YKFDE_RESPONSE"
+  fi
+fi
+
+if [ "$YKFDE_PRINT_ONLY" ]; then
+  printf '%s\n' " > ykfde passphrase: $YKFDE_PASSPHRASE"
+  exit 0
+fi
+
+if [ "$YKFDE_TEST_PASSPHRASE" ]; then
+  [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_TEST_PASSPHRASE $YKFDE_LUKS_DEV $YKFDE_LUKS_KEYSLOT $*'..." || echo " > Decrypting with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_TEST_PASSPHRASE" "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_KEYSLOT" "$*" 2>&1
+  printf '%s\n' "   Device successfully opened"
+  exit 0
+fi
+
+if [ "$(id -u)" -eq 0 ]; then
+  [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'cryptsetup'"
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS $YKFDE_LUKS_KEYSLOT $*'..." || echo " > Decrypting with 'cryptsetup'..."
+  printf %s "$YKFDE_PASSPHRASE" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" "$YKFDE_LUKS_KEYSLOT" "$*" 2>&1
+  printf '%s\n' "   Device successfully opened as '/dev/mapper/$YKFDE_LUKS_NAME'"
+elif ! command -v udisksctl >/dev/null 2>&1 || ! command -v expect >/dev/null 2>&1; then
+  printf '%s\n' "ERROR: At least one of required tools 'udisksctl' or 'expect' cannot be found. Please install 'udisks2' and 'expect' packages or use 'cryptsetup' by executing this script as 'root'."
+  exit 1
+elif [ ! -b "$YKFDE_LUKS_DEV" ]; then
+  # udisks doesn't work with regular file based devies
+  printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' isn't a block device file. Please open it with 'cryptsetup' by executing this script as 'root'."
+  exit 1
+elif ! udisksctl info -b "$YKFDE_LUKS_DEV" | grep -iq 'crypto_LUKS'; then
+  printf '%s\n' "ERROR: Selected device '$YKFDE_LUKS_DEV' isn't a LUKS encrypted volume. Please select a valid device."
+  exit 1
+else
+  [ "$DBG" ] && printf '%s\n' " > Passing '$YKFDE_PASSPHRASE' to 'udisksctl'"
+  [ "$DBG" ] && printf '%s\n' " > Decrypting with 'udisksctl unlock -b '$YKFDE_LUKS_DEV''..." || echo " > Decrypting with 'udisksctl'..."
+  expect <(
+    cat <<EXPECTSCRIPT
+	set timeout -1
+	spawn udisksctl unlock -b "$YKFDE_LUKS_DEV"
+	match_max 100000
+	expect -exact "Passphrase: "
+	send -- "${YKFDE_PASSPHRASE}\\r"
+	expect -re "Unlocked .* as (.*).\\r\\n" {
+		set unlocked \$expect_out(1,string)
+		if ("$YKFDE_MOUNT") {
+			spawn udisksctl mount -b \$unlocked
+			expect eof
+		}
+	}
+EXPECTSCRIPT
+  )
+
+fi
+
+exit 0

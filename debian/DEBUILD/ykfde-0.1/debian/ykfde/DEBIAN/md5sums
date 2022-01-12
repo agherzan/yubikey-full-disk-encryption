@@ -1,0 +1,11 @@
+769bca98716ca774ed0ae9f33de61835  lib/systemd/system/ykfde-suspend.service
+d3ed38318a7a12a8fd5bbf81fcb016d2  usr/bin/ykfde-enroll
+642e792c052c34be5585db29a0284457  usr/bin/ykfde-format
+4242ca31405f4d4b6541cfa0a3b3cc1b  usr/bin/ykfde-open
+f9416699896f40db5b8edf24871ab100  usr/lib/ykfde/initramfs-suspend
+b0f4f822744695d27bead9e971f8a820  usr/lib/ykfde/yubikey-luks-suspend
+904c0ee018481e06a9f1dd9feae72ccc  usr/share/doc/ykfde/README.md.gz
+3c74a9d70ac8577c9285386b947103de  usr/share/doc/ykfde/changelog.gz
+263720abf7536bd50db10f7f16ae4ef8  usr/share/doc/ykfde/copyright
+c032a821f9750aab07bc3044d6258685  usr/share/initramfs-tools/hooks/ykfde
+07d9cd251e02f64b4099b644324cbd1b  usr/share/ykfde/ykfde-keyscript

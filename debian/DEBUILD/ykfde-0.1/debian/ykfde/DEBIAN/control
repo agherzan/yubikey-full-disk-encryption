@@ -1,0 +1,14 @@
+Package: ykfde
+Version: 0.1
+Architecture: all
+Maintainer: Andrei Gherzan <https://github.com/agherzan>
+Installed-Size: 60
+Depends: cryptsetup, initramfs-tools, yubikey-personalization (>= 1.5), udisks2, expect
+Section: admin
+Priority: optional
+Homepage: https://github.com/agherzan/yubikey-full-disk-encryption
+Description: This project leverages a YubiKey HMAC-SHA1 Challenge-Response
+ mode for creating strong LUKS encrypted volume passphrases.
+ It can be used in intramfs stage during boot process as well as on running system.
+ .
+ Requires Yubikey 4 or newer.
