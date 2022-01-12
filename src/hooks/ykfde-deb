@@ -1,0 +1,38 @@
+#!/bin/sh
+
+set -e
+
+PREREQ="cryptroot"
+
+prereqs()
+{
+    echo "$PREREQ"
+}
+
+case $1 in
+    prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+. /etc/ykfde.conf
+
+copy_exec /usr/bin/ykchalresp
+copy_exec /usr/bin/ykinfo
+copy_exec /usr/bin/sha256sum
+cp /usr/share/ykfde/ykfde-keyscript "${DESTDIR}/sbin/ykfde-keyscript"
+cp /etc/ykfde.conf "${DESTDIR}/etc/ykfde.conf
+
+#if [ "$SUSPEND" = "1" ]; then
+#    echo "YKFDE: adding yubikey authentication to suspend."
+#    cp -pnL /usr/lib/ykfde/initramfs-suspend "${DESTDIR}/suspend"
+#    chmod 755 "${DESTDIR}/suspend"
+#    systemctl enable ykfde-suspend.service
+#else
+#    echo "YKFDE: removing yubikey authentication to suspend."
+#    systemctl disable ykfde-suspend.service
+#fi
+
+exit 0
