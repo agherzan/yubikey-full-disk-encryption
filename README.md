@@ -239,7 +239,7 @@ Reboot and test your configuration.
 ## Update crypttab (Debian/Ubuntu)
 To unlock LUKS encrypted volumes at boot for Debian/Ubuntu systems, you must append `keyscript=/usr/share/ykfde/ykfde-keyscript` to the `/etc/crypttab file`. For example:
 ```
-cryptroot /dev/sda none  luks,keyscript=/usr/share/yubikey-luks/ykluks-keyscript
+cryptroot /dev/sda none  luks,keyscript=/usr/share/ykfde/ykfde-keyscript
 ```
 After changing this file, update the initial RAM file system:
 ```
