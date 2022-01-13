@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/ash
 # shellcheck shell=dash
 
 cryptname="${1}"

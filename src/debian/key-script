@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is /sbin/ykluks-keyscript, which gets called when unlocking the disk
+# This is /sbin/ykfde-keyscript, which gets called when unlocking the disk
 #
 # set defualt values:
 DBG=""

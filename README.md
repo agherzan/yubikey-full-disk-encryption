@@ -8,7 +8,6 @@ Be aware that this was only tested and intended for:
 * [Debian](https://www.debian.org/)/[Ubuntu](https://www.ubuntu.com/) based systems
 * [YubiKey (version 4 or later)](https://www.yubico.com/products/yubikey-5-overview/)
 
-There is a similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](https://www.ubuntu.com/) based systems: [yubikey-luks](https://github.com/cornelinux/yubikey-luks)
 
 Table of Contents
 =================
