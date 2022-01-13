@@ -25,5 +25,3 @@ endif
 clean:
 	rm -fr DEBUILD
 	
-test:
-	sudo ../../../../src/testrun.sh
