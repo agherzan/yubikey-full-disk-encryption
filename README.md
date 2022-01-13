@@ -116,6 +116,7 @@ make builddeb NO_SIGN=1
 sudo dpkg -i DEBUILD/ykfde_*_all.deb
 ```
 
+
 # Configure
 
 
@@ -223,17 +224,28 @@ To kill a ykfde passphrase for existing *LUKS* encrypted volume you can use [ykf
 ykfde-enroll -d /dev/<device> -s <keyslot_number> -k
 ```
 
-## Enable ykfde initramfs hook
+## Enable ykfde initramfs hook (Arch Linux)
 
 **Warning: It's recommended to have already working [encrypted system setup](https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system) with `encrypt` hook and non-ykfde passphrase before starting to use `ykfde` hook with ykfde passphrase to avoid potential misconfigurations.**
 
-Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). Adding `ykfde` hook before `encrypt` hook will allow for a safe fallback in case of ykfde misconfiguration. You can remove `encrypt` hook later when you confim that everything is working correctly. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+For Arch Linux and its derivatives, edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). Adding `ykfde` hook before `encrypt` hook will allow for a safe fallback in case of ykfde misconfiguration. You can remove `encrypt` hook later when you confim that everything is working correctly. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
 ```
 sudo mkinitcpio -P
 ```
 
 Reboot and test your configuration.
+
+## Update crypttab (Debian/Ubuntu)
+To unlock LUKS encrypted volumes at boot for Debian/Ubuntu systems, you must append `keyscript=/usr/share/ykfde/ykfde-keyscript` to the `/etc/crypttab file`. For example:
+```
+cryptroot /dev/sda none  luks,keyscript=/usr/share/yubikey-luks/ykluks-keyscript
+```
+After changing this file, update the initial RAM file system:
+```
+update-initramfs -u
+```
+
 
 ## Enable NFC support in ykfde initramfs hook (experimental)
 
