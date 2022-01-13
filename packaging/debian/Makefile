@@ -9,8 +9,9 @@ debianize:
 	rm -fr DEBUILD
 	mkdir -p DEBUILD/${SRC_DIR}
 	cp -r * DEBUILD/${SRC_DIR} || true
-	cp -r ../src/* DEBUILD/${SRC_DIR} || true
-	cp ../README.md DEBUILD/${SRC_DIR} || true
+	cp -r ../../src/ykfde* DEBUILD/${SRC_DIR} || true
+	cp -r ../../src/debian/* DEBUILD/${SRC_DIR} || true
+	cp ../../README.md DEBUILD/${SRC_DIR} || true
 	(cd DEBUILD; tar -zcf ykfde_${VERSION}.orig.tar.gz --exclude=${SRC_DIR}/debian  ${SRC_DIR})
 
 builddeb:
