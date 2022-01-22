@@ -4,17 +4,11 @@
 # set default values:
 DBG=""
 YKFDE_CONFIG_FILE="/etc/ykfde.conf"
-YKFDE_NFC=""
-YKFDE_DISK_UUID=""
-YKFDE_LUKS_NAME=""
-YKFDE_LUKS_DEV=""
-YKFDE_LUKS_OPTIONS=""
 YKFDE_CHALLENGE_YUBIKEY_INSERT_TIMEOUT="30"
 YKFDE_CRYPTSETUP_TRIALS="5"
 YKFDE_CHALLENGE_SLOT="2"
 YKFDE_CHALLENGE=""
 YKFDE_CHALLENGE_PASSWORD_NEEDED=""
-YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
 YKFDE_USE_PLYMOUTH=""
 
 message() {
@@ -29,7 +23,6 @@ message() {
 run_hook() {
   local _tmp
   _tmp=""
-  local cryptopt cryptoptions
 
   [ -x /bin/plymouth ] && [ "$splash" ] && plymouth --ping && YKFDE_USE_PLYMOUTH=1
 
@@ -42,49 +35,13 @@ run_hook() {
   [ "$DBG" ] && message "$0:"
   [ "$DBG" ] && message " > Successfully read YKFDE configuration file."
   
-#  # if no settings in config, try to pull it from kernel cmdline (analog to encrypt hook)
-#  if [ -z "$YKFDE_DISK_UUID" ] || [ -z "$YKFDE_LUKS_NAME" ]; then
-#    # shellcheck disable=SC2154
-#    if [ "$cryptdevice" ]; then
-#      IFS=: read -r YKFDE_LUKS_DEV YKFDE_LUKS_NAME cryptoptions <<EOF
-#$cryptdevice
-#EOF
-#      if [ -z "$YKFDE_LUKS_OPTIONS" ]; then
-#        for cryptopt in $(echo "$cryptoptions" | tr , ' '); do
-#          case "$cryptopt" in
-#            allow-discards)
-#              YKFDE_LUKS_OPTIONS="--allow-discards"
-#              ;;
-#            *)
-#              ykfde_err 002 "Encryption option '$cryptopt' not known, ignoring."
-#              ;;
-#          esac
-#        done
-#      fi
-#      YKFDE_LUKS_DEV="$(resolve_device "$YKFDE_LUKS_DEV")"
-#    else
-#      ykfde_err 003 "'$YKFDE_CONFIG_FILE' Please provide YKFDE_DISK_UUID /and/ YKFDE_LUKS_NAME or set cryptdevice kernel parameter."
-#      return 1
-#    fi
-#  fi
-
-#  # sanity checks:
-#  [ -z "$YKFDE_LUKS_DEV" ] && YKFDE_LUKS_DEV="/dev/disk/by-uuid/$YKFDE_DISK_UUID"
+  # sanity checks:
   [ "$YKFDE_CRYPTSETUP_TRIALS" -lt 1 ] && YKFDE_CRYPTSETUP_TRIALS="5"
   [ "$YKFDE_CHALLENGE_SLOT" -lt 1 ] || [ "$YKFDE_CHALLENGE_SLOT" -gt 2 ] && YKFDE_CHALLENGE_SLOT="2"
-
-#  [ -e "$YKFDE_LUKS_DEV" ] || {
-#    ykfde_err 004 "YKFDE cannot find LUKS device '$YKFDE_LUKS_DEV'.\\nPlease check YKFDE_DISK_UUID ($YKFDE_DISK_UUID) and/or YKFDE_LUKS_DEV variable(s) in '$YKFDE_CONFIG_FILE'."
-#    return 1
-#  }
-
-#  [ "$DBG" ] && message " > modprobing dm-crypt"
-#  _tmp="$(modprobe -a -q dm-crypt >/dev/null 2>&1)"
 
   local trial_nr
   trial_nr=1
   while [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ]; do
-    #message "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $YKFDE_LUKS_DEV"
     ykfde_do_it && return 0
     trial_nr=$((trial_nr + 1))
   done
@@ -126,7 +83,6 @@ ykfde_do_it() {
       #message " > Passphrase needed to unlock device."
     fi
 
-    #printf "   Enter passphrase: "
     if [ "$YKFDE_USE_PLYMOUTH" ]; then
       printf '%s' "$(plymouth ask-for-password --prompt="Enter passphrase" --dont-pause-progress)"
     else
@@ -134,32 +90,7 @@ ykfde_do_it() {
       printf '%s' "$(/lib/cryptsetup/askpass "   Enter passphrase: ")"
     fi
     exit 0
-#    # if /NOT/ DBG, we need to output \n here.
-#    [ "$DBG" ] || echo
   fi
-
-#  [ "$DBG" ] && message " > Passing '$_ykfde_passphrase' to 'cryptsetup'"
-#  if [ "$YKFDE_RESUME" ]; then
-#    # shellcheck disable=SC2154
-#    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksResume $cryptname'..."; else message " > Decrypting with 'cryptsetup'..."; fi
-#    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksResume "$cryptname" 2>&1)"
-#  else
-#    if [ "$DBG" ]; then message " > Decrypting with 'cryptsetup luksOpen $YKFDE_LUKS_DEV $YKFDE_LUKS_NAME $YKFDE_LUKS_OPTIONS'..."; else message " > Decrypting with 'cryptsetup'..."; fi
-#    _tmp="$(printf %s "$_ykfde_passphrase" | cryptsetup luksOpen "$YKFDE_LUKS_DEV" "$YKFDE_LUKS_NAME" "$YKFDE_LUKS_OPTIONS" 2>&1)"
-#  fi
-#  _rc=$?
-
-#  if [ "$_rc" -eq 0 ]; then
-#    message "   Decryption was successful."
-#    if [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" ] && [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" -gt 0 ]; then
-#      [ "$DBG" ] && message " > Making $YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP sleep."
-#      sleep "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP"
-#    fi
-#  else
-#    message "   FAILED! [$_rc] $_tmp"
-#  fi
-
-#  return "$_rc"
 }
 
 ykfde_challenge_response() {
@@ -199,11 +130,6 @@ ykfde_challenge_response() {
     [ "$DBG" ] && message "[$_rc] '$_tmp'"
     if [ "$_rc" -eq 0 ]; then
       _yubikey_detected=1
-    elif [ "$YKFDE_NFC" ]; then
-      [ "$DBG" ] && message "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykchalresp-nfc -n': "
-      _tmp="$(ykchalresp-nfc -n 2>&1)"
-      _rc=$?
-      [ "$_rc" -eq 0 ] && _yubikey_nfc_detected=1
     fi
     if [ "$_yubikey_timeout" -eq -1 ] || [ "$_usedtime" -le "$_yubikey_timeout" ]; then
       sleep 0.5
@@ -216,19 +142,12 @@ ykfde_challenge_response() {
 
   [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ] && YKFDE_CHALLENGE=""
   while [ -z "$YKFDE_CHALLENGE" ]; do
-#    message " > Please provide the challenge."
     # shellcheck disable=SC2169
     if [ "$YKFDE_USE_PLYMOUTH" ]; then
       YKFDE_CHALLENGE="$(plymouth ask-for-password --prompt="Enter challenge" --dont-pause-progress)"
-#    elif [ "$DBG" ]; then
-#      read -r YKFDE_CHALLENGE
     else
-#      read -r -s YKFDE_CHALLENGE
       YKFDE_CHALLENGE="$(/lib/cryptsetup/askpass "   Enter challenge: ")"
     fi
-#    YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
-#    # if /NOT/ DBG, we need to output \n here.
-#    [ "$DBG" ] || echo
   done
 
   if [ "$_yubikey_detected" ]; then
@@ -237,15 +156,6 @@ ykfde_challenge_response() {
       message "   Remember to touch the device if necessary."
       YKFDE_CHALLENGE="$(printf %s "$YKFDE_CHALLENGE" | sha256sum | awk '{print $1}')"
       _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')"
-      [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
-    done
-  fi
-
-  if [ -n "$_yubikey_nfc_detected" ]; then
-    while [ -z "$_ykfde_response" ]; do
-      [ "$DBG" ] && message "   Running: 'ykchalresp-nfc -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
-      message "   Remember to touch the device if necessary."
-      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp-nfc -"$YKFDE_CHALLENGE_SLOT" | tr -d '\n')"
       [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
     done
   fi
