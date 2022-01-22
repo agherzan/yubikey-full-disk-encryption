@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+
+PREREQ="cryptroot"
+
+prereqs()
+{
+    echo "$PREREQ"
+}
+
+case $1 in
+    prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+. /etc/ykfde.conf
+
+copy_exec /usr/bin/ykchalresp
+copy_exec /usr/bin/ykinfo
+copy_exec /usr/bin/sha256sum
+cp /usr/share/ykfde/ykfde-keyscript "${DESTDIR}/sbin/ykfde-keyscript"
+cp /etc/ykfde.conf "${DESTDIR}/etc/ykfde.conf"
+
+exit 0

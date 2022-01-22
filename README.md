@@ -5,9 +5,9 @@ This project leverages a [YubiKey](https://wiki.archlinux.org/index.php/Yubikey)
 Be aware that this was only tested and intended for:
 
 * [Arch Linux](https://www.archlinux.org/) and its derivatives
+* [Debian](https://www.debian.org/)/[Ubuntu](https://www.ubuntu.com/) based systems
 * [YubiKey (version 4 or later)](https://www.yubico.com/products/yubikey-5-overview/)
 
-There is similar project targeting [Debian](https://www.debian.org/)/[Ubuntu](https://www.ubuntu.com/) based systems: [yubikey-luks](https://github.com/cornelinux/yubikey-luks)
 
 Table of Contents
 =================
@@ -80,7 +80,8 @@ Keep in mind that the above doesn't protect you from physical tampering like *ev
 
 # Install
 
-## From Arch Linux official repository
+## Arch Linux
+### From Arch Linux official repository
 
 The easiest way is to install package from [official Arch Linux repository](https://www.archlinux.org/packages/community/any/yubikey-full-disk-encryption/).
 
@@ -88,22 +89,32 @@ The easiest way is to install package from [official Arch Linux repository](http
 sudo pacman -Syu yubikey-full-disk-encryption
 ```
 
-## From Github using 'makepkg'
+### From Github using 'makepkg'
 
 ```
-wget https://raw.githubusercontent.com/agherzan/yubikey-full-disk-encryption/master/PKGBUILD
+wget https://raw.githubusercontent.com/agherzan/yubikey-full-disk-encryption/master/packaging/archlinux/PKGBUILD
 makepkg -srci
 ```
 
-## From Github using 'make'
+### From Github using 'make'
 
 ```
 git clone https://github.com/agherzan/yubikey-full-disk-encryption.git
-cd yubikey-full-disk-encryption
+cd yubikey-full-disk-encryption/packaging/archlinux
 sudo make install
 ```
 
 When installing by using `make` you also need to install [yubikey-personalization](https://www.archlinux.org/packages/community/x86_64/yubikey-personalization/) and [expect](https://www.archlinux.org/packages/extra/x86_64/expect/) packages.
+
+## Debian/Ubuntu
+### From Github using 'make'
+```
+git clone https://github.com/agherzan/yubikey-full-disk-encryption.git
+cd yubikey-full-disk-encryption/packaging/debian
+make builddeb NO_SIGN=1
+sudo dpkg -i DEBUILD/ykfde_*_all.deb
+```
+
 
 # Configure
 
@@ -212,17 +223,28 @@ To kill a ykfde passphrase for existing *LUKS* encrypted volume you can use [ykf
 ykfde-enroll -d /dev/<device> -s <keyslot_number> -k
 ```
 
-## Enable ykfde initramfs hook
+## Enable ykfde initramfs hook (Arch Linux)
 
 **Warning: It's recommended to have already working [encrypted system setup](https://wiki.archlinux.org/index.php/Dm-crypt/Encrypting_an_entire_system) with `encrypt` hook and non-ykfde passphrase before starting to use `ykfde` hook with ykfde passphrase to avoid potential misconfigurations.**
 
-Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). Adding `ykfde` hook before `encrypt` hook will allow for a safe fallback in case of ykfde misconfiguration. You can remove `encrypt` hook later when you confim that everything is working correctly. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
+For Arch Linux and its derivatives, edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). Adding `ykfde` hook before `encrypt` hook will allow for a safe fallback in case of ykfde misconfiguration. You can remove `encrypt` hook later when you confim that everything is working correctly. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
 ```
 sudo mkinitcpio -P
 ```
 
 Reboot and test your configuration.
+
+## Update crypttab (Debian/Ubuntu)
+To unlock LUKS encrypted volumes at boot for Debian/Ubuntu systems, you must append `keyscript=/usr/share/ykfde/ykfde-keyscript` to the `/etc/crypttab` file. For example:
+```
+cryptroot /dev/sda none  luks,keyscript=/usr/share/ykfde/ykfde-keyscript
+```
+After changing this file, update the initial RAM file system:
+```
+sudo update-initramfs -u
+```
+
 
 ## Enable NFC support in ykfde initramfs hook (experimental)
 
