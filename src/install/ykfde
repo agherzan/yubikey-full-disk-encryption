@@ -22,6 +22,25 @@ build() {
     add_all_modules "/crypto/"
   fi
 
+  base_files=$(pacman -Ql python | awk '{print $2}' | /bin/grep -E '.py$|.so$')
+  for file in $base_files
+  do
+    add_file $file
+  done
+
+  python_ver=$(python -V | awk -F'[" ",.]' '{print $2"."$3}')
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/zipp"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/cryptography"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/cffi"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/smartcard"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/fido2"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/importlib_metadata"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/ykman"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/yubikit"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/click"
+  add_full_dir "/usr/lib/python${python_ver}/site-packages/keyring"
+  add_binary "/usr/lib/python${python_ver}/site-packages/_cffi_backend.cpython-311-x86_64-linux-gnu.so"
+  
   add_binary "cryptsetup"
   add_binary "dmsetup"
   add_file "/usr/lib/udev/rules.d/10-dm.rules"
@@ -31,10 +50,12 @@ build() {
 
   # cryptsetup calls pthread_create(), which dlopen()s libgcc_s.so.1
   add_binary "/usr/lib/libgcc_s.so.1"
-
+  add_binary "/usr/lib/libssl.so.3"
+  add_binary "/usr/lib/libpcsclite.so.1"
+  add_binary "python"
+  add_binary "ykman"
+  add_binary "od"
   add_binary "tr"
-  add_binary "ykchalresp"
-  add_binary "ykinfo"
   add_binary "date"
   add_binary "sleep"
   add_binary "printf"
