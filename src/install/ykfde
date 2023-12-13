@@ -39,7 +39,7 @@ build() {
   add_full_dir "/usr/lib/python${python_ver}/site-packages/yubikit"
   add_full_dir "/usr/lib/python${python_ver}/site-packages/click"
   add_full_dir "/usr/lib/python${python_ver}/site-packages/keyring"
-  add_binary "/usr/lib/python${python_ver}/site-packages/_cffi_backend.cpython-311-x86_64-linux-gnu.so"
+  add_binary "/usr/lib/python${python_ver}/site-packages/_cffi_backend.cpython-${python_ver/./}-x86_64-linux-gnu.so"
   
   add_binary "cryptsetup"
   add_binary "dmsetup"
