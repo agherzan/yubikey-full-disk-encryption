@@ -16,6 +16,7 @@ YKFDE_CHALLENGE=""
 YKFDE_CHALLENGE_PASSWORD_NEEDED=""
 YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
 YKFDE_USE_PLYMOUTH=""
+export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1
 
 message() {
   if [ "$YKFDE_USE_PLYMOUTH" ]; then
@@ -192,8 +193,8 @@ ykfde_challenge_response() {
   while [ -z "$_yubikey_detected" ] && [ -z "$_yubikey_nfc_detected" ]; do
     _endtime="$(date +%s)"
     _usedtime=$((_endtime - _starttime))
-    [ "$DBG" ] && message "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykinfo -$YKFDE_CHALLENGE_SLOT': "
-    _tmp="$(ykinfo -"$YKFDE_CHALLENGE_SLOT" 2>&1)"
+    [ "$DBG" ] && message "   (used time:$_usedtime, timeout:$_yubikey_timeout) 'ykman otp info': "
+    _tmp="$(ykman otp info | grep -q "$YKFDE_CHALLENGE_SLOT: programmed" 2>&1)"
     _rc=$?
     [ "$DBG" ] && message "[$_rc] '$_tmp'"
     if [ "$_rc" -eq 0 ]; then
@@ -232,9 +233,10 @@ ykfde_challenge_response() {
 
   if [ "$_yubikey_detected" ]; then
     while [ -z "$_ykfde_response" ]; do
-      [ "$DBG" ] && message "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+      YKFDE_REAL_CHALLENGE="$(printf '%s' "$YKFDE_CHALLENGE" | od --endian=big -t x1 -An | tr -d ' ,\n')"
+      [ "$DBG" ] && message "   Running: 'ykman otp calculate $YKFDE_CHALLENGE_SLOT $YKFDE_REAL_CHALLENGE'..."
       message "   Remember to touch the device if necessary."
-      _ykfde_response="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')"
+      _ykfde_response="$(printf '%s' "$YKFDE_REAL_CHALLENGE" | ykman otp calculate "$YKFDE_CHALLENGE_SLOT" -- | tr -d '\n')"
       [ "$DBG" ] && message "   Received response: '$_ykfde_response'"
     done
   fi
