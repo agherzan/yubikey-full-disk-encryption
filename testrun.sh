@@ -73,5 +73,6 @@ then
   echo "All tests successfully passed."
 else
   echo "The image didnot pass the test, please file a bug report to: https://github.com/agherzan/yubikey-full-disk-encryption/issues"
+  exit 127
 fi
 exit 0
