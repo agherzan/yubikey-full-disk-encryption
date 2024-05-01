@@ -150,6 +150,8 @@ ykfde_do_it() {
 
   if [ "$_rc" -eq 0 ]; then
     message "   Decryption was successful."
+    # encryptssh support
+    touch /.done
     if [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" ] && [ "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP" -gt 0 ]; then
       [ "$DBG" ] && message " > Making $YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP sleep."
       sleep "$YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP"
