@@ -84,10 +84,10 @@ while getopts ":d:s:ckovh" opt; do
   esac
 done
 
-YKFDE_SLOT_CHECK="$(ykinfo -q -"$YKFDE_CHALLENGE_SLOT")"
-[ "$DBG" ] && printf '%s\n' " > YubiKey slot status 'ykinfo -q -$YKFDE_CHALLENGE_SLOT': $YKFDE_SLOT_CHECK"
+YKFDE_SLOT_CHECK="$(ykman otp info | grep "$YKFDE_CHALLENGE_SLOT" | awk '{print $3}')"
+[ "$DBG" ] && printf '%s\n' " > YubiKey slot status 'ykman otp info': slot $YKFDE_CHALLENGE_SLOT: $YKFDE_SLOT_CHECK"
 
-if [ "$YKFDE_SLOT_CHECK" != 1 ]; then
+if [ "$YKFDE_SLOT_CHECK" != "programmed" ]; then
   printf '%s\n' "ERROR: Chosen YubiKey slot '$YKFDE_CHALLENGE_SLOT' isn't configured. Please choose slot configured for 'HMAC-SHA1 Challenge-Response' mode in '/etc/ykfde.conf'"
   exit 1
 fi
@@ -144,9 +144,10 @@ if [ -z "$YKFDE_CHALLENGE" ]; then
 fi
 
 while [ -z "$YKFDE_RESPONSE" ]; do
-  [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_CHALLENGE'..."
+  YKFDE_REAL_CHALLENGE="$(printf '%s' "$YKFDE_CHALLENGE" | od --endian=big -t x1 -An | tr -d ' ,\n')"
+  [ "$DBG" ] && printf '%s\n' "   Running: 'ykman otp calculate $YKFDE_CHALLENGE_SLOT $YKFDE_REAL_CHALLENGE'..."
   echo "   Remember to touch the device if necessary."
-  YKFDE_RESPONSE="$(printf %s "$YKFDE_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')" || true
+  YKFDE_RESPONSE="$(printf '%s' "$YKFDE_REAL_CHALLENGE" | ykman otp calculate "$YKFDE_CHALLENGE_SLOT" -- | tr -d '\n')" || true
   [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_RESPONSE'"
 done
 
@@ -190,9 +191,10 @@ if [ "$YKFDE_OLD_YUBIKEY" ]; then
   fi
 
   while [ -z "$YKFDE_OLD_RESPONSE" ]; do
-    [ "$DBG" ] && printf '%s\n' "   Running: 'ykchalresp -$YKFDE_CHALLENGE_SLOT $YKFDE_OLD_CHALLENGE'..."
+    YKFDE_REAL_OLD_CHALLENGE=$(printf '%s' "$YKFDE_OLD_CHALLENGE" | od --endian=big -t x1 -An | tr -d ' ,\n')
+    [ "$DBG" ] && printf '%s\n' "   Running: 'ykman otp calculate $YKFDE_CHALLENGE_SLOT $YKFDE_REAL_OLD_CHALLENGE'..."
     echo "   Remember to touch the old device if necessary."
-    YKFDE_OLD_RESPONSE="$(printf %s "$YKFDE_OLD_CHALLENGE" | ykchalresp -"$YKFDE_CHALLENGE_SLOT" -i- | tr -d '\n')" || true
+    YKFDE_OLD_RESPONSE="$(printf '%s' "$YKFDE_REAL_OLD_CHALLENGE" | ykman otp calculate "$YKFDE_CHALLENGE_SLOT" -- | tr -d '\n')" || true
     [ "$DBG" ] && printf '%s\n' "   Received response: '$YKFDE_OLD_RESPONSE'"
   done
 
