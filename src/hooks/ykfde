@@ -15,6 +15,7 @@ YKFDE_CHALLENGE_SLOT="2"
 YKFDE_CHALLENGE=""
 YKFDE_CHALLENGE_PASSWORD_NEEDED=""
 YKFDE_SLEEP_AFTER_SUCCESSFUL_CRYPTSETUP=""
+YKFDE_SKIP_PASSWORD_PROMPT=""
 YKFDE_USE_PLYMOUTH=""
 
 message() {
@@ -82,12 +83,17 @@ EOF
   _tmp="$(modprobe -a -q dm-crypt >/dev/null 2>&1)"
 
   local trial_nr
+  local _rc
   trial_nr=1
   while [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ]; do
     message "Attempt #$trial_nr/$YKFDE_CRYPTSETUP_TRIALS: cryptsetup of $YKFDE_LUKS_DEV"
-    ykfde_do_it && return 0
+    ykfde_do_it
+    _rc=$?
+    [ "$_rc" -eq 0 ] && return 0
     trial_nr=$((trial_nr + 1))
   done
+
+  [ "$_rc" -eq 20 ] && return 0
 
   # if we get here, we did NOT succeed:
   ykfde_err 000 "$0 Failed!"
@@ -120,10 +126,18 @@ ykfde_do_it() {
 
   if [ -z "$_ykfde_passphrase" ]; then
     if [ "$YKFDE_CHALLENGE" ] || [ "$YKFDE_CHALLENGE_PASSWORD_NEEDED" ]; then
-      message " > Challenge-Response failed. Falling back to manual passphrase."
-      [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && message "   Press ENTER to skip and retry Challenge-Response."
+      message " > Challenge-Response failed."
+      if [ -z "$YKFDE_SKIP_PASSWORD_PROMPT" ]; then
+        message "   Falling back to manual passphrase."
+        [ "$trial_nr" -le "$YKFDE_CRYPTSETUP_TRIALS" ] && message "   Press ENTER to skip and retry Challenge-Response."
+      fi
     else
       message " > Passphrase needed to unlock device."
+    fi
+
+    if [ "$YKFDE_CHALLENGE" ] && [ "$YKFDE_SKIP_PASSWORD_PROMPT" ]; then
+        [ "$DBG" ] && message " > Skipping password promp; running the next module..."
+        return 20
     fi
 
     printf "   Enter passphrase: "

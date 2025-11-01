@@ -33,6 +33,7 @@ Table of Contents
       * [Enable ykfde initramfs hook](#enable-ykfde-initramfs-hook)
       * [Enable NFC support in ykfde initramfs hook (experimental)](#enable-nfc-support-in-ykfde-initramfs-hook-experimental)
       * [Enable ykfde suspend service (experimental)](#enable-ykfde-suspend-service-experimental)
+      * [Use ykfde with encryptssh](#use-ykfde-with-encryptssh)
    * [License](#license)
 
 # Design
@@ -62,7 +63,7 @@ It will be hashed using the *SHA256* algorithm to achieve constant byte length (
 
 Hashing function:
 
-```
+```bash
 printf 123456abcdef | sha256sum | awk '{print $1}'
 ```
 
@@ -84,20 +85,20 @@ Keep in mind that the above doesn't protect you from physical tampering like *ev
 
 The easiest way is to install package from [official Arch Linux repository](https://www.archlinux.org/packages/community/any/yubikey-full-disk-encryption/).
 
-```
+```bash
 sudo pacman -Syu yubikey-full-disk-encryption
 ```
 
 ## From Github using 'makepkg'
 
-```
+```bash
 wget https://raw.githubusercontent.com/agherzan/yubikey-full-disk-encryption/master/PKGBUILD
 makepkg -srci
 ```
 
 ## From Github using 'make'
 
-```
+```bash
 git clone https://github.com/agherzan/yubikey-full-disk-encryption.git
 cd yubikey-full-disk-encryption
 sudo make install
@@ -112,7 +113,7 @@ When installing by using `make` you also need to install [yubikey-personalizatio
 
 First of all you need to [setup a configuration slot](https://wiki.archlinux.org/index.php/Yubikey#Setup_the_slot) for *YubiKey HMAC-SHA1 Challenge-Response* mode using a command similar to:
 
-```
+```bash
 ykpersonalize -v -2 -ochal-resp -ochal-hmac -ohmac-lt64 -oserial-api-visible -ochal-btn-trig
 ```
 
@@ -136,7 +137,7 @@ You may instead enable *HMAC-SHA1 Challenge-Response* mode using graphical inter
 
 Open the [/etc/ykfde.conf](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde.conf) file and adjust it for your needs. Alternatively to setting `YKFDE_DISK_UUID` and `YKFDE_LUKS_NAME`, you can use `cryptdevice` kernel parameter. The [syntax](https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption#Configuring_the_kernel_parameters) is compatible with Arch's `encrypt` hook. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
-```
+```bash
 sudo mkinitcpio -P
 ```
 
@@ -148,7 +149,7 @@ You can list existing LUKS key slots with `cryptsetup luksDump /dev/<device>`.
 
 To format new *LUKS* encrypted volume, you can use [ykfde-format](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-format) script which is wrapper over `cryptsetup luksFormat` command:
 
-```
+```bash
 ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha512 /dev/<device>
 ```
 
@@ -156,7 +157,7 @@ ykfde-format --cipher aes-xts-plain64 --key-size 512 --hash sha512 /dev/<device>
 
 To enroll new ykfde passphrase to existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
 
-```
+```bash
 ykfde-enroll -d /dev/<device> -s <keyslot_number>
 ```
 
@@ -166,7 +167,7 @@ ykfde-enroll -d /dev/<device> -s <keyslot_number>
 
 To enroll new ykfde passphrase to existing *LUKS* encrypted volume protected by old ykfde passphrase you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
 
-```
+```bash
 ykfde-enroll -d /dev/<device> -s <keyslot_number> -o
 ```
 
@@ -176,31 +177,31 @@ To unlock *LUKS* encrypted volume on a running system, you can use [ykfde-open](
 
 As unprivileged user using udisksctl (recommended):
 
-```
+```bash
 ykfde-open -d /dev/<device>
 ```
 
 As root using cryptsetup (when [udisks2](https://www.archlinux.org/packages/extra/x86_64/udisks2/) or [expect](https://www.archlinux.org/packages/extra/x86_64/expect/) aren't available):
 
-```
+```bash
 ykfde-open -d /dev/<device> -n <volume_name>
 ```
 
 To print only the ykfde passphrase to the console without unlocking any volumes:
 
-```
+```bash
 ykfde-open -p
 ```
 
 To test only a passphrase for a specific key slot:
 
-```
+```bash
 ykfde-open -d /dev/<device> -s <keyslot_number> -t
 ```
 
 To use optional parameters, example, use an external luks header:
 
-```
+```bash
 ykfde-open -d /dev/<device> -- --header /mnt/luks-header.img
 ```
 
@@ -208,7 +209,7 @@ ykfde-open -d /dev/<device> -- --header /mnt/luks-header.img
 
 To kill a ykfde passphrase for existing *LUKS* encrypted volume you can use [ykfde-enroll](https://github.com/agherzan/yubikey-full-disk-encryption/blob/master/src/ykfde-enroll) script, see `ykfde-enroll -h` for help:
 
-```
+```bash
 ykfde-enroll -d /dev/<device> -s <keyslot_number> -k
 ```
 
@@ -218,7 +219,7 @@ ykfde-enroll -d /dev/<device> -s <keyslot_number> -k
 
 Edit `/etc/mkinitcpio.conf` and add the `ykfde` hook before or instead of `encrypt` hook as provided in [example](https://wiki.archlinux.org/index.php/Dm-crypt/System_configuration#Examples). Adding `ykfde` hook before `encrypt` hook will allow for a safe fallback in case of ykfde misconfiguration. You can remove `encrypt` hook later when you confim that everything is working correctly. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
-```
+```bash
 sudo mkinitcpio -P
 ```
 
@@ -230,7 +231,7 @@ Reboot and test your configuration.
 
 NFC support is provided through [libnfc](https://www.archlinux.org/packages/community/x86_64/libnfc/) and [ykchalresp-nfc](https://aur.archlinux.org/packages/ykchalresp-nfc/) tools. Make sure you have both packages installed. Edit `/etc/ykfde.conf` and uncomment `YKFDE_NFC="1"`setting. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
-```
+```bash
 sudo mkinitcpio -P
 ```
 
@@ -244,17 +245,31 @@ You can enable the `ykfde-suspend` service which allows for automatically lockin
 
 Edit `/etc/mkinitcpio.conf` and add `shutdown` hook as the last in `HOOKS` array. After making your changes [regenerate initramfs](https://wiki.archlinux.org/index.php/Mkinitcpio#Image_creation_and_activation):
 
-```
+```bash
 sudo mkinitcpio -P
 ```
 
 Enable related systemd service:
 
-```
+```bash
 systemctl enable ykfde-suspend.service
 ```
 
 Reboot and test your configuration.
+
+## Use ykfde with encryptssh
+
+You can configure ykfde to skip its password-fallback prompt. This allows the boot process to proceed to the next hook in the sequence (e.g., `encryptssh`) after the YubiKey polling loop finishes without a key being presented.
+
+Here's how you do it with encryptssh:
+
+* Follow the installation guide for [encryptssh](https://wiki.archlinux.org/title/Dm-crypt/Specialties#Busybox_based_initramfs_\(built_with_mkinitcpio\))
+* Edit `/etc/mkinitcpio.conf` and add `ykfde` **before** `encryptssh` in the `HOOKS` array.
+* Edit `/etc/ykfde.conf` and uncomment `YKFDE_SKIP_PASSWORD_PROMPT="1"`.
+* Regenerate the initramfs
+  ```bash
+  sudo mkinitcpio -P
+  ```
 
 # License
 
