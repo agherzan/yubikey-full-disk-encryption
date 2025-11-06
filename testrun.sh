@@ -37,24 +37,42 @@ truncate -s 20M "$YKFDE_TMPFILE"
 
 cleanup() {
   rm -f "$YKFDE_TMPFILE"
+  rm -rf initramfs
 }
 trap cleanup EXIT
 
 echo "INFO: Testing 'ykfde-format' script."
-DBG=1 ykfde-format "$YKFDE_TMPFILE"
+DBG=1 bash "$(pwd)/src/ykfde-format" "$YKFDE_TMPFILE"
 echo "Test 'ykfde-format' script successfully passed."
 
 echo "INFO: Testing 'ykfde-enroll' script."
 printf '%s\n' "test" | cryptsetup luksFormat "$YKFDE_TMPFILE"
 echo "INFO: Old LUKS passphrase is 'test'."
-ykfde-enroll -d "$YKFDE_TMPFILE" -s 7 -v
+bash "$(pwd)/src/ykfde-enroll" -d "$YKFDE_TMPFILE" -s 7 -v
 echo "Test 'ykfde-enroll' script successfully passed."
 
 echo "INFO: Testing 'ykfde-open' script."
-ykfde-open -d "$YKFDE_TMPFILE" -n ykfde-test -v
+bash "$(pwd)/src/ykfde-open" -d "$YKFDE_TMPFILE" -n ykfde-test -v
 cryptsetup close ykfde-test
 echo "Test 'ykfde-open' script successfully passed."
 
-echo "All tests successfully passed."
-
+echo "INFO: Testing initramfs..."
+mkdir -p "$(pwd)/initramfs"
+mkinitcpio -d "$(pwd)/initramfs"
+status=1
+status=$(chroot "$(pwd)/initramfs" /bin/sh -c "export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; ykman otp info; exit 0" 2>&1 | awk '
+  { 
+    if ($0 ~ /No YubiKey detected/) {
+    print "0";
+    exit 0;
+    }
+  }' 
+)
+if [[ "$status" == 0 ]]
+then
+  echo "All tests successfully passed."
+else
+  echo "The image didnot pass the test, please file a bug report to: https://github.com/agherzan/yubikey-full-disk-encryption/issues"
+  exit 127
+fi
 exit 0
